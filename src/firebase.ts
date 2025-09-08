@@ -2,15 +2,17 @@ import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
+// Firebase configuration loaded from Vite environment variables.
+// See .env.example for the required variables.
 const firebaseConfig = {
-  apiKey: "AIzaSyBHgM9w98CbWzWrm6f1MwcBLYQSP5jQrU8",
-  authDomain: "accreditedfs.firebaseapp.com",
-  projectId: "accreditedfs",
-  storageBucket: "accreditedfs.firebasestorage.app",
-  messagingSenderId: "421709791580",
-  appId: "1:421709791580:web:1bbd904382f4ce0a9ec199",
-  measurementId: "G-M4CDFFHBGT"
-};
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+}
 
 const app = initializeApp(firebaseConfig)
 
