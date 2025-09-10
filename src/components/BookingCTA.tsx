@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import emailjs from '@emailjs/browser'
 
 type FormData = {
   name: string
@@ -14,11 +15,83 @@ const BookingCTA: React.FC = () => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
+  const [isSending, setIsSending] = useState(false)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real implementation, this would send the data to a server
-    alert('Thank you for booking a consultation! We will contact you shortly to confirm your appointment.')
-    setFormData({ name: '', email: '', phone: '', preferredDate: '', message: '' })
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
+    const templateAdminId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
+    const templateReplyId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_REPLY
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+  const rawRecipient = import.meta.env.VITE_BOOKING_RECIPIENT
+  const recipient = (rawRecipient && String(rawRecipient).trim()) || 'info@accreditedfs.com'
+
+    // Include several common recipient field names to match different template setups
+    const adminParams = {
+      from_name: formData.name,
+      from_email: formData.email,
+      phone: formData.phone,
+      preferred_date: formData.preferredDate,
+      message: formData.message,
+      // common template variables for recipient
+      to_email: recipient,
+      to: recipient,
+      recipient_email: recipient,
+      recipient: recipient,
+      email_to: recipient,
+    }
+
+    const senderEmailRaw = (formData.email || '').toString().trim()
+    const senderEmail = senderEmailRaw
+
+    // reply params include several common recipient keys so templates expecting
+    // different variable names will receive the address
+    const replyParams: Record<string, string> = {
+      to_name: formData.name,
+      to_email: senderEmail,
+      to: senderEmail,
+      recipient_email: senderEmail,
+      recipient: senderEmail,
+      email_to: senderEmail,
+      reply_to: senderEmail,
+      preferred_date: formData.preferredDate,
+      message: formData.message,
+    }
+
+    if (!serviceId || !templateAdminId || !publicKey) {
+      alert('Booking submission not configured. Please contact support.')
+      return
+    }
+
+    setIsSending(true)
+
+    // Send admin notification first
+    emailjs.send(serviceId, templateAdminId, adminParams, publicKey)
+      .then((res) => {
+        // Optionally send client auto-reply if a reply template is configured
+        if (templateReplyId) {
+          // basic email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!senderEmail || !emailRegex.test(senderEmail)) {
+            // skip reply if sender email invalid; log for debugging
+            console.warn('Skipping auto-reply: invalid sender email', senderEmail)
+            return res
+          }
+
+          return emailjs.send(serviceId, templateReplyId, replyParams, publicKey)
+            .then(() => res)
+        }
+        return res
+      })
+      .then(() => {
+        alert('Thank you for booking a consultation! We will contact you shortly to confirm your appointment.')
+        setFormData({ name: '', email: '', phone: '', preferredDate: '', message: '' })
+      })
+      .catch((err: unknown) => {
+        console.error('EmailJS error', err)
+        alert('There was an error sending your booking. Please try again or email info@accreditedfs.com directly.')
+      })
+      .finally(() => setIsSending(false))
   }
   return (
     <section id="booking" className="py-16 bg-blue-800 text-white">

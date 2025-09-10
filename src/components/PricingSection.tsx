@@ -4,7 +4,8 @@ import { ChevronDown, ChevronUp, Check } from 'lucide-react'
 type Tier = {
   id: number
   name: string
-  price: number
+  price: string
+  originalPrice?: string
   description: string
   features: string[]
   expandedFeatures: string[]
@@ -21,31 +22,69 @@ const PricingSection: React.FC = () => {
   const pricingTiers = [
     {
       id: 1,
-      name: 'Essential',
-      price: 99,
-      description: 'Perfect for individuals just starting their credit repair journey',
-      features: ['Credit report analysis from all 3 bureaus', 'Up to 5 disputes per month', 'Monthly progress reports', 'Basic credit education resources', 'Email support'],
-      expandedFeatures: ['Personalized dispute letter templates', 'Identity theft scan', 'Score tracker dashboard', 'Financial planning consultation (30 min)', 'Debt management guidance'],
-      cta: 'Get Started',
+      name: 'Credit Refresh',
+      price: '1,100',
+      originalPrice: '2,100',
+      description: 'Perfect for clients who need a quick win and focused cleanup to move closer to approvals. This entry-level package targets the most harmful inaccuracies on your report — without the extras — giving you the foundation to move forward toward your financial goals.',
+      features: [
+        'Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.',
+        'Or $300 down + $200/mo for 9 months (total $2,100)',
+        'Backed by our 90-Day Money-Back Guarantee',
+      ],
+      expandedFeatures: [
+        "What's Included:",
+        'Up to 3 Collections Removed',
+        'Up to 2 Late Payments Removed',
+        'Up to 6 Hard Inquiries Removed',
+        'Full 3-Bureau Cleanup of outdated or inaccurate info',
+        'Monthly Progress Check-ins',
+      ],
+      cta: 'Choose Credit Refresh',
     },
     {
       id: 2,
-      name: 'Advanced',
-      price: 149,
-      description: 'Our most popular plan for comprehensive credit repair',
-      features: ['Everything in Essential plan', 'Up to 15 disputes per month', 'Bi-weekly progress reports', 'Priority email support', 'Phone consultations'],
-      expandedFeatures: ['Advanced dispute strategies', 'Creditor intervention letters', 'Debt validation services', 'Financial planning consultation (60 min)', 'Credit building recommendations', 'Goodwill intervention letters'],
-      cta: 'Choose Advanced',
+      name: 'Credit Rebuild',
+      price: '2,000',
+      originalPrice: '3,200',
+      description: 'This is the full reset — designed for clients ready to completely restore their credit and aim for the 700+ club. You’ll receive personalized support, monthly progress reviews, and hands-on guidance to keep your credit moving forward.',
+      features: [
+        'Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.',
+        'Or $500 down + $300/mo for 9 months (total $3,200)',
+        'Backed by our 90-Day Money-Back Guarantee',
+      ],
+      expandedFeatures: [
+        "What's Included:",
+        'Full Negative Item Removal (collections, charge-offs, bankruptcies, repos, evictions, student loans, medical bills)',
+        'Late Payment Deletions',
+        'Hard Inquiry Removal',
+        'One-on-One Mentorship Calls with Ola',
+        'Monthly Check-ins + Email & Support',
+        'Personalized Credit Strategy & Ongoing Guidance',
+      ],
+      cta: 'Choose Credit Rebuild',
       recommended: true,
     },
     {
       id: 3,
-      name: 'Premium',
-      price: 199,
-      description: 'Maximum support for complex credit situations',
-      features: ['Everything in Advanced plan', 'Unlimited disputes per month', 'Weekly progress reports', '24/7 priority support', 'Dedicated credit specialist'],
-      expandedFeatures: ['Legal action letters when needed', 'Cease & desist letters to collectors', 'FCRA violation identification', 'Expert witness testimony (if needed)', 'Monthly one-on-one strategy sessions', 'Lifetime credit monitoring', 'Post-repair maintenance plan'],
-      cta: 'Choose Premium',
+      name: 'Couples Advantage',
+      price: '3,200',
+      originalPrice: '4,300',
+      description: 'Designed for couples or partners who are serious about building — or rebuilding — their credit together. This plan includes the full benefits of our premium credit repair program, doubled for both partners, along with personalized guidance to ensure each of you is supported on your financial journey.',
+      features: [
+        'Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.',
+        'Or $700 down + $400/mo for 9 months (total $4,300)',
+        'Backed by our 90-Day Money-Back Guarantee',
+      ],
+      expandedFeatures: [
+        "What's Included:",
+        'Full Negative Item Removal (collections, charge-offs, bankruptcies, repos, evictions, student loans, medical bills)',
+        'Late Payment Deletions',
+        'Hard Inquiry Removal',
+        'One-on-One Mentorship Calls with Ola',
+        'Monthly Check-ins + Email & Tech Support',
+        'Joint Mentorship Calls + Personalized Guidance',
+      ],
+      cta: 'Choose Couples Advantage',
     },
   ]
   return (
@@ -117,12 +156,26 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
     }
   }, [expanded])
 
+  // when closed, give all cards a baseline min-height so they line up;
+  // make the recommended card taller when closed so it appears longest.
+  // baseline closed heights (smaller on mobile, larger on md+)
+  const closedBaseMinH = !expanded ? 'min-h-[18rem] md:min-h-[22rem]' : ''
+  // recommended (middle) card should be clearly taller when closed
+  const recommendedClosedMinH = !expanded && tier.recommended ? 'min-h-[28rem] md:min-h-[40rem]' : ''
+
   return (
-    <div className={`self-start bg-white rounded-lg shadow-lg overflow-hidden border ${tier.recommended ? 'border-blue-500' : 'border-gray-200'} hover:shadow-xl transition-shadow`}>
+    <div className={`self-start bg-white rounded-lg shadow-lg overflow-hidden border ${tier.recommended ? 'border-blue-500' : 'border-gray-200'} hover:shadow-xl transition-shadow ${closedBaseMinH} ${recommendedClosedMinH}`}>
       {tier.recommended && <div className="bg-blue-500 text-white text-center py-2 font-medium">Most Popular</div>}
       <div className={`p-6 ${tier.recommended ? 'bg-blue-50' : ''}`}>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">{tier.name}</h3>
-        <div className="flex items-baseline mb-4"><span className="text-4xl font-bold text-gray-900">${tier.price}</span><span className="text-gray-600 ml-1">/month</span></div>
+        <div className="text-center mb-4">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{tier.name}</h3>
+          <div className="flex items-baseline justify-center">
+            <span className="text-4xl font-bold text-gray-900">${tier.price}</span>
+            {tier.originalPrice && (
+              <span className="text-sm text-gray-600 line-through ml-1">${tier.originalPrice}</span>
+            )}
+          </div>
+        </div>
         <p className="text-gray-600 mb-6">{tier.description}</p>
         <div className="space-y-3 mb-6">{tier.features.map((feature, index) => (<div key={index} className="flex items-start"><Check className="h-5 w-5 text-blue-700 mr-2 flex-shrink-0 mt-0.5" /><span className="text-gray-700">{feature}</span></div>))}</div>
 
