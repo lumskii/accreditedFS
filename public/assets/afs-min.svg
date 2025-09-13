@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="120" viewBox="0 0 400 120" preserveAspectRatio="xMinYMid meet">
+  <rect width="400" height="120" rx="8" fill="none"/>
+  <!-- shield -->
+  <g transform="translate(8,12)">
+    <path d="M32 0 L64 8 V40 C64 64 48 80 32 88 C16 80 0 64 0 40 V8 Z" fill="#1e3a8a"/>
+    <path d="M12 34 L22 48 L44 18" stroke="#6bbf59" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <!-- text -->
+  <g transform="translate(90,30)">
+    <text x="0" y="12" font-family="Inter,Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#19486b">ACCREDITED</text>
+    <text x="0" y="44" font-family="Inter,Arial,Helvetica,sans-serif" font-size="18" font-weight="600" fill="#556065">FINANCIAL SERVICES</text>
+  </g>
+</svg>

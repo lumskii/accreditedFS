@@ -6,11 +6,11 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+  <div className="flex justify-between h-20 items-center">
           <div className="flex items-center">
-            <div className="text-xl font-bold text-blue-800">
-              Accredited Financial Services
-            </div>
+            <a href="/" className="flex items-center">
+              <img src="/assets/afs-min.svg" alt="Accredited Financial Services" className="h-14 md:h-16 lg:h-18 w-auto mr-3" />
+            </a>
           </div>
           <div className="hidden md:flex items-center space-x-8">
             <a href="#services" className="text-gray-700 hover:text-blue-800 transition-colors">Services</a>

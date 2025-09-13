@@ -6,18 +6,33 @@ type FormData = {
   email: string
   phone: string
   preferredDate: string
+  preferredTime: string
   message: string
 }
 
 const BookingCTA: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({ name: '', email: '', phone: '', preferredDate: '', message: '' })
+  const [formData, setFormData] = useState<FormData>({ name: '', email: '', phone: '', preferredDate: '', preferredTime: '', message: '' })
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    // Phone input: format as (123) 456-7890 while typing (basic US-style mask)
+    if (name === 'phone') {
+      const digits = value.replace(/\D/g, '')
+      let formatted = digits
+      if (digits.length > 3 && digits.length <= 6) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+      } else if (digits.length > 6) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
+      }
+      setFormData((prev) => ({ ...prev, [name]: formatted }))
+      return
+    }
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
   const [isSending, setIsSending] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
     const templateAdminId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
@@ -26,12 +41,43 @@ const BookingCTA: React.FC = () => {
   const rawRecipient = import.meta.env.VITE_BOOKING_RECIPIENT
   const recipient = (rawRecipient && String(rawRecipient).trim()) || 'info@accreditedfs.com'
 
-    // Include several common recipient field names to match different template setups
+    // Combine date + time (if provided) so templates receive the full preferred datetime
+    const dateTimeStr = formData.preferredDate
+      ? `${formData.preferredDate}${formData.preferredTime ? 'T' + formData.preferredTime : ''}`
+      : ''
+
+    let formattedPreferredDateLocale = ''
+    let formattedPreferredDate = ''
+    if (dateTimeStr) {
+      const dt = new Date(dateTimeStr)
+      if (!isNaN(dt.getTime())) {
+        formattedPreferredDateLocale = dt.toLocaleString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+        // use 12-hour clock with AM/PM for the manual formatted string
+        const hours24 = dt.getHours()
+        const minutes = dt.getMinutes().toString().padStart(2, '0')
+        const ampm = hours24 >= 12 ? 'PM' : 'AM'
+        const hours12 = (hours24 % 12) === 0 ? 12 : hours24 % 12
+        formattedPreferredDate = `${(dt.getMonth() + 1).toString().padStart(2, '0')}-${dt
+          .getDate()
+          .toString()
+          .padStart(2, '0')}-${dt.getFullYear()} at ${hours12.toString().padStart(2, '0')}:${minutes} ${ampm}`
+      }
+    }
+
     const adminParams = {
       from_name: formData.name,
       from_email: formData.email,
       phone: formData.phone,
-      preferred_date: formData.preferredDate,
+      // include both formats if you want; templates can use either
+      preferred_date: formattedPreferredDate,
+      preferred_date_locale: formattedPreferredDateLocale,
       message: formData.message,
       // common template variables for recipient
       to_email: recipient,
@@ -46,52 +92,48 @@ const BookingCTA: React.FC = () => {
 
     // reply params include several common recipient keys so templates expecting
     // different variable names will receive the address
-    const replyParams: Record<string, string> = {
+    // Build reply params with the exact fields required by the client confirmation template
+    const replyParams = {
       to_name: formData.name,
+      from_name: formData.name,
+      from_email: senderEmail,
       to_email: senderEmail,
-      to: senderEmail,
-      recipient_email: senderEmail,
-      recipient: senderEmail,
-      email_to: senderEmail,
-      reply_to: senderEmail,
-      preferred_date: formData.preferredDate,
+      phone: formData.phone,
+      preferred_date: formattedPreferredDate,
+      preferred_date_locale: formattedPreferredDateLocale,
       message: formData.message,
     }
 
     if (!serviceId || !templateAdminId || !publicKey) {
-      alert('Booking submission not configured. Please contact support.')
+      setErrorMessage('Booking submission not configured. Please contact support.')
       return
     }
 
     setIsSending(true)
+    try {
+      // send admin notification
+      await emailjs.send(serviceId, templateAdminId, adminParams, publicKey)
 
-    // Send admin notification first
-    emailjs.send(serviceId, templateAdminId, adminParams, publicKey)
-      .then((res) => {
-        // Optionally send client auto-reply if a reply template is configured
-        if (templateReplyId) {
-          // basic email validation
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          if (!senderEmail || !emailRegex.test(senderEmail)) {
-            // skip reply if sender email invalid; log for debugging
-            console.warn('Skipping auto-reply: invalid sender email', senderEmail)
-            return res
-          }
-
-          return emailjs.send(serviceId, templateReplyId, replyParams, publicKey)
-            .then(() => res)
+      // optionally send client auto-reply only if template id is set and senderEmail is valid
+      if (templateReplyId && senderEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (emailRegex.test(senderEmail)) {
+          await emailjs.send(serviceId, templateReplyId, replyParams, publicKey)
+        } else {
+          console.warn('Skipping auto-reply: invalid sender email', senderEmail)
         }
-        return res
-      })
-      .then(() => {
-        alert('Thank you for booking a consultation! We will contact you shortly to confirm your appointment.')
-        setFormData({ name: '', email: '', phone: '', preferredDate: '', message: '' })
-      })
-      .catch((err: unknown) => {
-        console.error('EmailJS error', err)
-        alert('There was an error sending your booking. Please try again or email info@accreditedfs.com directly.')
-      })
-      .finally(() => setIsSending(false))
+      }
+
+      setSuccessMessage('Thank you for booking a consultation! We will contact you shortly to confirm your appointment.')
+      setErrorMessage(null)
+      setFormData({ name: '', email: '', phone: '', preferredDate: '', preferredTime: '', message: '' })
+    } catch (err: unknown) {
+      console.error('EmailJS error', err)
+      setErrorMessage('There was an error sending your booking. Please try again or email info@accreditedfs.com directly.')
+      setSuccessMessage(null)
+    } finally {
+      setIsSending(false)
+    }
   }
   return (
     <section id="booking" className="py-16 bg-blue-800 text-white">
@@ -138,6 +180,11 @@ const BookingCTA: React.FC = () => {
             <div className="md:w-1/2 p-8 bg-white text-gray-800">
               <h3 className="text-2xl font-bold text-blue-800 mb-4">Schedule Now</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* inline status messages */}
+                <div aria-live="polite" className="min-h-[2rem]">
+                  {successMessage && <div className="bg-green-100 text-green-800 px-3 py-2 rounded-md mb-2">{successMessage}</div>}
+                  {errorMessage && <div className="bg-red-100 text-red-800 px-3 py-2 rounded-md mb-2">{errorMessage}</div>}
+                </div>
                 <div>
                   <label htmlFor="name" className="block text-gray-700 mb-1">Full Name</label>
                   <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -151,14 +198,35 @@ const BookingCTA: React.FC = () => {
                   <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label htmlFor="preferredDate" className="block text-gray-700 mb-1">Preferred Date & Time</label>
-                  <input type="datetime-local" id="preferredDate" name="preferredDate" value={formData.preferredDate} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="preferredDate" className="block text-gray-700 mb-1">Preferred Date</label>
+                      <input type="date" id="preferredDate" name="preferredDate" value={formData.preferredDate} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label htmlFor="preferredTime" className="block text-gray-700 mb-1">Preferred Time </label>
+                      <input type="time" id="preferredTime" name="preferredTime" value={formData.preferredTime} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="message" className="block text-gray-700 mb-1">Additional Information (Optional)</label>
                   <textarea id="message" name="message" value={formData.message} onChange={handleChange} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
-                <button type="submit" className="w-full bg-[#f0d541] text-blue-800 font-semibold py-3 px-4 rounded-md hover:bg-[#e6cb3d] transition-colors">Book My Free Consultation</button>
+                <button type="submit" disabled={isSending} className={`w-full ${isSending ? 'opacity-60 cursor-not-allowed' : ''} bg-[#f0d541] text-blue-800 font-semibold py-3 px-4 rounded-md hover:bg-[#e6cb3d] transition-colors flex items-center justify-center`}>
+                  {isSending ? (
+                    // simple inline spinner + text
+                    <>
+                      <svg className="animate-spin h-5 w-5 mr-2 text-blue-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Sending...
+                    </>
+                  ) : (
+                    'Book My Free Consultation'
+                  )}
+                </button>
               </form>
             </div>
           </div>

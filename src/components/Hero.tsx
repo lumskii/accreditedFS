@@ -28,22 +28,9 @@ const Hero: React.FC = () => {
             </div>
             <a href="#booking" className="inline-block bg-[#f0d541] text-blue-800 font-semibold px-6 py-3 rounded-md hover:bg-[#e6cb3d] transition-colors">Schedule Free Consultation</a>
           </div>
-          <div className="md:w-1/2 md:pl-10">
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="text-blue-800 text-xl font-semibold mb-2">See How We Can Help</h3>
-              <p className="text-gray-600 mb-6">Enter your information for a free credit score assessment</p>
-              <form className="space-y-4">
-                <div>
-                  <input type="text" placeholder="Full Name" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <input type="email" placeholder="Email Address" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <input type="tel" placeholder="Phone Number" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <button type="submit" className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Get Free Assessment</button>
-              </form>
+          <div className="md:w-1/2 md:pl-10 flex items-center justify-center">
+            <div className="w-full max-w-md">
+              <img src="/assets/credit_solution-min.png" alt="Credit improvement illustration" className="w-full h-auto rounded-lg shadow-lg bg-white" />
             </div>
           </div>
         </div>
