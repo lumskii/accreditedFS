@@ -17,6 +17,7 @@ const Navbar: React.FC = () => {
             <a href="#pricing" className="text-gray-700 hover:text-blue-800 transition-colors">Pricing</a>
             <a href="#benefits" className="text-gray-700 hover:text-blue-800 transition-colors">Why Choose Us</a>
             <a href="#testimonials" className="text-gray-700 hover:text-blue-800 transition-colors">Success Stories</a>
+            <a href="/admin/disputes" className="text-gray-700 hover:text-blue-800 transition-colors">Admin</a>
             <a href="#about" className="text-gray-700 hover:text-blue-800 transition-colors">About Us</a>
             <a href="#booking" className="bg-[#f0d541] text-blue-800 px-4 py-2 rounded-md hover:bg-[#e6cb3d] transition-colors font-medium">Book Consultation</a>
           </div>
@@ -34,6 +35,7 @@ const Navbar: React.FC = () => {
             <a href="#pricing" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Pricing</a>
             <a href="#benefits" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Why Choose Us</a>
             <a href="#testimonials" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Success Stories</a>
+            <a href="/admin/disputes" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Admin</a>
             <a href="#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>About Us</a>
             <a href="#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Book Consultation</a>
           </div>

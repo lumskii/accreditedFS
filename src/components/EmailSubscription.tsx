@@ -1,18 +1,46 @@
 import React, { useState } from 'react'
 import { Mail, CheckCircle } from 'lucide-react'
+import { push, ref, set } from 'firebase/database'
+import { database } from '../firebase'
 
 const EmailSubscription: React.FC = () => {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real implementation, this would send the email to a server
-    setIsSubmitted(true)
-    setEmail('')
-    // Reset the submission state after 5 seconds
-    setTimeout(() => {
-      setIsSubmitted(false)
-    }, 5000)
+    setError(null)
+
+    const trimmed = email.trim()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmed)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const requestsRef = ref(database, 'disputeRequests')
+      const newRef = push(requestsRef)
+      await set(newRef, {
+        email: trimmed,
+        createdAt: new Date().toISOString(),
+      })
+
+      setIsSubmitted(true)
+      setEmail('')
+      // keep success visible for 8 seconds
+      setTimeout(() => {
+        setIsSubmitted(false)
+      }, 8000)
+    } catch (err) {
+      console.error('Failed to submit dispute request', err)
+      setError('There was a problem submitting your request. Please try again later.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
   return (
     <section className="py-16 bg-[#f0d541]">
@@ -40,7 +68,11 @@ const EmailSubscription: React.FC = () => {
                     <label htmlFor="email" className="block text-gray-700 mb-2">Email Address</label>
                     <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="youremail@example.com" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-                  <button type="submit" className="w-full bg-blue-700 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-800 transition-colors flex items-center justify-center"><Mail className="h-5 w-5 mr-2" />Get Free Dispute Letter</button>
+                  {error && <div className="text-sm text-red-700 mb-3">{error}</div>}
+                  <button type="submit" disabled={isSubmitting} className={`w-full ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''} bg-blue-700 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-800 transition-colors flex items-center justify-center`}>
+                    <Mail className="h-5 w-5 mr-2" />
+                    {isSubmitting ? 'Submitting...' : 'Get Free Dispute Letter'}
+                  </button>
                   <p className="text-xs text-gray-500 mt-3 text-center">We respect your privacy. Unsubscribe at any time.</p>
                 </form>
               )}

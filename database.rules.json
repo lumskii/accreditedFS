@@ -1,6 +1,15 @@
 {
-  /* Visit https://firebase.google.com/docs/database/security to learn more about security rules. */
   "rules": {
+    "disputeRequests": {
+      "$pushId": {
+        ".read": "root.child('admins').child(auth.uid).val() == true",
+  ".write": "(!data.exists() && newData.child('email').isString() && newData.child('email').val().matches(/^[^@]+@[^@]+\\.[^@]+$/) && newData.child('createdAt').isString() && newData.child('createdAt').val().length <= 64)"
+      }
+    },
+    "admins": {
+      ".read": false,
+      ".write": false
+    },
     ".read": false,
     ".write": false
   }
