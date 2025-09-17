@@ -13,8 +13,9 @@ import * as logger from 'firebase-functions/logger'
 // use v1 realtime database trigger API via functions.database.ref(...).onCreate
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
-import sendgrid from '@sendgrid/mail'
-import PDFDocument from 'pdfkit'
+// Lazy-load heavy libraries (PDFKit, SendGrid) inside the function body to
+// avoid long-running initialization during module load which can cause
+// deployment timeouts. We'll import them dynamically when needed.
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { createWriteStream } from 'fs'
@@ -48,8 +49,6 @@ admin.initializeApp()
 const sendgridKey = process.env.SENDGRID_API_KEY || process.env.SENDGRID_KEY
 if (!sendgridKey) {
   logger.warn('SendGrid API key not set in environment (SENDGRID_API_KEY); emails will fail until configured.')
-} else {
-  sendgrid.setApiKey(sendgridKey)
 }
 
 async function fsReadFileAsBase64(path: string) {
@@ -92,7 +91,8 @@ async function processDispute({ email, pushId }: { email: string; pushId?: strin
   if (!email) throw new Error('email required')
   logger.log('processDispute starting for', email, pushId)
 
-  // Generate PDF
+  // Generate PDF (dynamically import PDFKit to avoid heavy top-level init)
+  const PDFDocument = (await import('pdfkit')).default
   const doc = new PDFDocument({ size: 'A4', margin: 50 })
   const pdfPath = join(tmpdir(), `dispute-letter-${pushId || 'local'}.pdf`)
   const stream = doc.pipe(createWriteStream(pdfPath))
@@ -141,6 +141,9 @@ async function processDispute({ email, pushId }: { email: string; pushId?: strin
   }
 
   try {
+    // Dynamically load SendGrid to avoid blocking during module initialization
+    const sendgrid = (await import('@sendgrid/mail')).default
+    sendgrid.setApiKey(sendgridKey)
     await sendgrid.send(msg)
     logger.info('Dispute letter emailed to', email)
     // write success status back to Realtime DB if pushId provided
