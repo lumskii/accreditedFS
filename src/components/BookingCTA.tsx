@@ -34,10 +34,9 @@ const BookingCTA: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
-    const templateAdminId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
-    const templateReplyId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_REPLY
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
+  const templateReplyId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID_REPLY
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
   const rawRecipient = import.meta.env.VITE_BOOKING_RECIPIENT
   const recipient = (rawRecipient && String(rawRecipient).trim()) || 'info@accreditedfs.com'
 
@@ -104,15 +103,16 @@ const BookingCTA: React.FC = () => {
       message: formData.message,
     }
 
-    if (!serviceId || !templateAdminId || !publicKey) {
+    if (!serviceId || !publicKey) {
       setErrorMessage('Booking submission not configured. Please contact support.')
       return
     }
 
     setIsSending(true)
     try {
-      // send admin notification
-      await emailjs.send(serviceId, templateAdminId, adminParams, publicKey)
+  // send admin notification using the main template if available, otherwise fall back to the reply template
+  const adminTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || templateReplyId
+  await emailjs.send(serviceId, adminTemplateId, adminParams, publicKey)
 
       // optionally send client auto-reply only if template id is set and senderEmail is valid
       if (templateReplyId && senderEmail) {

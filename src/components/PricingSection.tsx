@@ -167,13 +167,18 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
     <div className={`self-start bg-white rounded-lg shadow-lg overflow-hidden border ${tier.recommended ? 'border-blue-500' : 'border-gray-200'} hover:shadow-xl transition-shadow ${closedBaseMinH} ${recommendedClosedMinH}`}>
       {tier.recommended && <div className="bg-blue-500 text-white text-center py-2 font-medium">Most Popular</div>}
       <div className={`p-6 ${tier.recommended ? 'bg-blue-50' : ''}`}>
-        <div className="text-center mb-4">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">{tier.name}</h3>
-          <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold text-gray-900">${tier.price}</span>
-            {tier.originalPrice && (
-              <span className="text-sm text-gray-600 line-through ml-1">${tier.originalPrice}</span>
-            )}
+        <div className="w-full mb-4">
+          <div className="w-full bg-[#f0d541] text-blue-800 rounded-md px-4 py-3 relative overflow-visible">
+            <h3 className="text-2xl font-bold mb-1 text-center">{tier.name}</h3>
+            <div className="flex items-baseline justify-center">
+              <span className="text-4xl font-bold">${tier.price}</span>
+            </div>
+            {/* Tag shaped like price tag image: rotated square (hole/clip) + rounded label centered at bottom */}
+            <div className="flex justify-center mt-2">
+              <div className="inline-flex items-center bg-blue-700 text-[#f0d541] px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
+                Pay in full — discounted price
+              </div>
+            </div>
           </div>
         </div>
         <p className="text-gray-600 mb-6">{tier.description}</p>
