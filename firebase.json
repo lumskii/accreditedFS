@@ -24,8 +24,12 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "destination": "https://accreditedfs.vercel.app/api/**"
+      },
+      {
         "source": "**",
-        "destination": "https://accreditedfs.vercel.app/api/"
+        "destination": "/index.html"
       }
     ]
   },

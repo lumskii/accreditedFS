@@ -19,7 +19,18 @@ const stripePromise = loadStripe(
 );
 
 async function handleCheckout(plan: string, mode: "full" | "monthly") {
-  const res = await fetch("/api/create-checkout-session", {
+  // Use VITE_API_BASE when set (e.g. https://accreditedfs.vercel.app) so
+  // deployed frontend can call the Vercel backend. Fall back to relative
+  // path for local dev or when the API is served from the same origin.
+  // Use provided VITE_API_BASE when set. In development use relative paths so
+  // the local dev server works. In production, if no VITE_API_BASE is set,
+  // default to the Vercel backend URL.
+  const envApiBase = import.meta.env.VITE_API_BASE;
+  const isDev = import.meta.env.MODE === 'development';
+  const defaultProdApi = 'https://accreditedfs.vercel.app';
+  const apiBase = envApiBase || (isDev ? '' : defaultProdApi);
+  const endpoint = apiBase ? `${apiBase.replace(/\/$/, '')}/api/create-checkout-session` : '/api/create-checkout-session';
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ plan, mode }),
