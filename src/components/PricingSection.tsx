@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { loadStripe } from "@stripe/stripe-js";
 
 type Tier = {
   id: number
@@ -12,6 +13,25 @@ type Tier = {
   cta: string
   recommended?: boolean
 }
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string
+);
+
+async function handleCheckout(plan: string, mode: "full" | "monthly") {
+  const res = await fetch("/api/create-checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan, mode }),
+  });
+
+  const { id } = await res.json();
+  const stripe = await stripePromise;
+  if (stripe) {
+    await stripe.redirectToCheckout({ sessionId: id });
+  }
+}
+
 
 const PricingSection: React.FC = () => {
   // track expanded state per-tier so multiple tiers can be opened independently
@@ -163,6 +183,25 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
   // recommended (middle) card should be clearly taller when closed
   const recommendedClosedMinH = !expanded && tier.recommended ? 'min-h-[28rem] md:min-h-[40rem]' : ''
 
+  // checkout state and plan mapping
+  const [isLoading, setIsLoading] = useState(false);
+  const planSlug = tier.name.toLowerCase().replace(/\s+/g, '-');
+  const priceOptions: Record<string, { full: string; monthlyDeposit: string; monthlySummary: string }> = {
+    'credit-refresh': { full: '$1,100', monthlyDeposit: '$300', monthlySummary: '$200/mo' },
+    'credit-rebuild': { full: '$2,000', monthlyDeposit: '$500', monthlySummary: '$300/mo' },
+    'couples-advantage': { full: '$3,200', monthlyDeposit: '$700', monthlySummary: '$400/mo' },
+  };
+  const opts = priceOptions[planSlug] || { full: `$${tier.price}`, monthlyDeposit: '$0', monthlySummary: 'Deposit + monthly' };
+
+  const onCheckout = async (mode: 'full' | 'monthly') => {
+    try {
+      setIsLoading(true);
+      await handleCheckout(planSlug, mode);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={`self-start bg-white rounded-lg shadow-lg overflow-hidden border ${tier.recommended ? 'border-blue-500' : 'border-gray-200'} hover:shadow-xl transition-shadow ${closedBaseMinH} ${recommendedClosedMinH}`}>
       {tier.recommended && <div className="bg-blue-500 text-white text-center py-2 font-medium">Most Popular</div>}
@@ -205,7 +244,36 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
           </div>
         </div>
 
-        <button className={`w-full py-3 rounded-md font-semibold transition-colors ${tier.recommended ? 'bg-[#f0d541] text-blue-800 hover:bg-[#e6cb3d]' : 'bg-blue-700 text-white hover:bg-blue-800'}`}>{tier.cta}</button>
+        {/* Checkout buttons: Pay in Full and Deposit + Monthly */}
+        <div className="space-y-3">
+          <button
+            onClick={() => onCheckout('full')}
+            disabled={isLoading}
+            className={`w-full py-3 rounded-md font-semibold transition-colors flex items-center justify-center ${tier.recommended ? 'bg-[#f0d541] text-blue-800 hover:bg-[#e6cb3d]' : 'bg-blue-700 text-white hover:bg-blue-800'}`}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>Pay in Full – {opts.full}</>
+            )}
+          </button>
+
+          <button
+            onClick={() => onCheckout('monthly')}
+            disabled={isLoading}
+            className="w-full py-3 rounded-md font-semibold border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 flex flex-col items-center justify-center"
+          >
+            <span className="text-sm text-gray-600">Deposit</span>
+            <span className="font-semibold text-base text-gray-900">{opts.monthlyDeposit}</span>
+            <span className="text-xs text-gray-500">+ {opts.monthlySummary}</span>
+          </button>
+        </div>
       </div>
     </div>
   )
