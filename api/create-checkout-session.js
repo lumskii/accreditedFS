@@ -1,23 +1,26 @@
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
-  const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || '*';
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const allowedOrigins = [
+    "https://accreditedfs.web.app",
+    "https://accreditedfs.com",
+  ];
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigins);
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   // Handle preflight request
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
   // Only accept POST for creating a checkout session
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).end('Method Not Allowed');
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).end("Method Not Allowed");
   }
 
   try {
@@ -25,27 +28,27 @@ export default async function handler(req, res) {
 
     // Map plan names to Stripe Price IDs
     const PRICE_IDS = {
-        "credit-refresh": {
-            full: process.env.STRIPE_PRICE_REFRESH_FULL,
-            deposit: process.env.STRIPE_PRICE_REFRESH_DEPOSIT,
-            monthly: process.env.STRIPE_PRICE_REFRESH_MONTHLY,
-        },
-        "credit-rebuild": {
-            full: process.env.STRIPE_PRICE_REBUILD_FULL,
-            deposit: process.env.STRIPE_PRICE_REBUILD_DEPOSIT,
-            monthly: process.env.STRIPE_PRICE_REBUILD_MONTHLY,
-        },
-        "couples-advantage": {
-            full: process.env.STRIPE_PRICE_COUPLES_FULL,
-            deposit: process.env.STRIPE_PRICE_COUPLES_DEPOSIT,
-            monthly: process.env.STRIPE_PRICE_COUPLES_MONTHLY,
-        },
+      "credit-refresh": {
+        full: process.env.STRIPE_PRICE_REFRESH_FULL,
+        deposit: process.env.STRIPE_PRICE_REFRESH_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_REFRESH_MONTHLY,
+      },
+      "credit-rebuild": {
+        full: process.env.STRIPE_PRICE_REBUILD_FULL,
+        deposit: process.env.STRIPE_PRICE_REBUILD_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_REBUILD_MONTHLY,
+      },
+      "couples-advantage": {
+        full: process.env.STRIPE_PRICE_COUPLES_FULL,
+        deposit: process.env.STRIPE_PRICE_COUPLES_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_COUPLES_MONTHLY,
+      },
     };
 
     let line_items = [];
 
     if (mode === "full") {
-        line_items.push({ price: PRICE_IDS[plan].full, quantity: 1 });
+      line_items.push({ price: PRICE_IDS[plan].full, quantity: 1 });
     } else if (mode === "monthly") {
       line_items.push(
         { price: PRICE_IDS[plan].deposit, quantity: 1 },
@@ -54,7 +57,7 @@ export default async function handler(req, res) {
     }
 
     const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
+      payment_method_types: ["card"],
       mode: mode === "full" ? "payment" : "subscription",
       line_items,
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
