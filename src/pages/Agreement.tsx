@@ -77,18 +77,24 @@ const Agreement: React.FC = () => {
   const checkVerifiedAndContinue = async () => {
     if (!user) return
     setLoading(true)
-    await user.reload()
-    if (user.emailVerified) {
+    // reload the user from the auth instance to ensure we have the latest verified state
+    try {
+      if (auth.currentUser) await auth.currentUser.reload()
+    } catch (e) {
+      // ignore reload errors, we'll re-check below
+    }
+    const freshUser = auth.currentUser || user
+    if (freshUser && freshUser.emailVerified) {
       // proceed as if submission happened
       try {
-        await set(ref(database, `users/${user.uid}/agreement`), {
+        await set(ref(database, `users/${freshUser.uid}/agreement`), {
           agreed: true,
-          signedBy: signName || user.displayName || user.email,
+          signedBy: signName || freshUser.displayName || freshUser.email,
           signedAt: Date.now()
         })
         // pass plan/mode as query params if available in RTDB
         try {
-          const flowSnap = await get(ref(database, `users/${user.uid}/flow`))
+          const flowSnap = await get(ref(database, `users/${freshUser.uid}/flow`))
           const flowVal = flowSnap.exists() ? flowSnap.val() : {}
           const planParam = flowVal.plan ? `?plan=${encodeURIComponent(flowVal.plan)}` : ''
           const modeParam = flowVal.mode ? `${planParam ? '&' : '?'}mode=${encodeURIComponent(flowVal.mode)}` : ''
