@@ -32,8 +32,15 @@ const Checkout: React.FC = () => {
         return
       }
 
+      // Try to refresh the user's local state (verification may have happened in another tab)
+      try {
+        if (auth.currentUser) await auth.currentUser.reload()
+      } catch (e) {
+        // ignore reload errors
+      }
+      const freshUser = auth.currentUser || user
       // Ensure email verified and agreement exists
-      if (!user.emailVerified) {
+      if (!freshUser || !freshUser.emailVerified) {
         setError('Please verify your email before continuing to payment.')
         setLoading(false)
         return
@@ -47,7 +54,8 @@ const Checkout: React.FC = () => {
           return
         }
 
-        const idToken = await user.getIdToken()
+  // Force a refreshed ID token so server sees updated emailVerified claim
+  const idToken = await freshUser.getIdToken(true)
         // POST to backend to create checkout session
         const envApiBase = import.meta.env.VITE_API_BASE
         const isDev = import.meta.env.MODE === 'development'
@@ -91,7 +99,10 @@ const Checkout: React.FC = () => {
     if (!user) return
     setResendLoading(true)
     try {
-      await sendEmailVerification(user)
+        // include actionCodeSettings so link returns to our verify handler
+        const continueUrl = (import.meta.env.NEXT_PUBLIC_SITE_URL || '') + '/verify'
+        const actionCodeSettings = { url: continueUrl, handleCodeInApp: false }
+        await sendEmailVerification(user, actionCodeSettings)
       setToast('Verification email sent — check your inbox')
     } catch (err: any) {
       setError(err.message || 'Failed to send verification')
