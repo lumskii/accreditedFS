@@ -15,6 +15,7 @@ import Agreement from './pages/Agreement'
 import Success from './components/Success'
 import Cancel from './components/Cancel'
 import Checkout from './pages/Checkout'
+import Verify from './pages/Verify'
 
 const Home: React.FC = () => (
   <main className="flex-grow">
@@ -42,6 +43,7 @@ export function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/agreement" element={<Agreement />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/verify" element={<Verify />} />
           <Route path="/success" element={<Success />} />
           <Route path="/cancel" element={<Cancel />} />
         </Routes>
