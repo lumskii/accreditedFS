@@ -24,22 +24,22 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 export default async function handler(req, res) {
+    // Accept only POST
     if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).end("Method Not Allowed");
     }
+
+  // CORS for dashboard/testing origin
+  const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'https://accreditedfs.web.app'
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
 
   const sig = req.headers["stripe-signature"];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event;
   try {
-    const chunks = [];
-    for await (const chunk of req) {
-        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-    }
-    const buf = Buffer.concat(chunks);
-
+    const buf = await buffer(req);
     event = stripe.webhooks.constructEvent(buf, sig, endpointSecret);
   } catch (err) {
     console.error("⚠️  Webhook signature verification failed:", err.message);
@@ -51,21 +51,46 @@ export default async function handler(req, res) {
     const session = event.data.object;
 
     // Extract useful info
-    const record = {
-      email: session.customer_email,
-      amount_total: session.amount_total / 100, // convert cents to $
-      currency: session.currency,
-      plan: session.metadata?.plan || "unknown",
-      mode: session.mode,
-      status: "paid",
-      createdAt: Date.now(),
-    };
-
+    // Idempotency: use session.id as key under payments_by_session
+    const sessionId = session.id;
     try {
-      await db.ref("payments").push(record);
-      console.log("✅ Payment saved to Realtime DB:", record);
+      // Find user by stripe customer id
+      const customerId = session.customer;
+      let uid = null;
+      if (customerId) {
+        const snapshot = await db.ref('users').orderByChild('stripe/customerId').equalTo(customerId).once('value');
+        const users = snapshot.val();
+        if (users) {
+          uid = Object.keys(users)[0];
+        }
+      }
+
+      const record = {
+        email: session.customer_details?.email || session.customer_email,
+        amount_total: session.amount_total / 100,
+        currency: session.currency,
+        plan: session.metadata?.plan || 'unknown',
+        mode: session.mode,
+        status: 'paid',
+        createdAt: Date.now(),
+        sessionId,
+      };
+
+      // write to a payments_by_session node to avoid duplicates
+      const existing = await db.ref(`payments_by_session/${sessionId}`).get();
+      if (!existing.exists()) {
+        await db.ref(`payments_by_session/${sessionId}`).set(record);
+        if (uid) {
+          await db.ref(`users/${uid}/payments/${sessionId}`).set(record);
+        } else {
+          await db.ref(`payments_orphans/${sessionId}`).set(record);
+        }
+        console.log('✅ Payment saved for session', sessionId);
+      } else {
+        console.log('⚠️ Duplicate webhook received for session', sessionId);
+      }
     } catch (dbErr) {
-      console.error("❌ Failed to save payment:", dbErr);
+      console.error('❌ Failed to save payment:', dbErr);
     }
   }
 

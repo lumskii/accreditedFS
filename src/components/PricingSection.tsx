@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -195,7 +196,6 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
   const recommendedClosedMinH = !expanded && tier.recommended ? 'min-h-[28rem] md:min-h-[40rem]' : ''
 
   // checkout state and plan mapping
-  const [isLoading, setIsLoading] = useState(false);
   const planSlug = tier.name.toLowerCase().replace(/\s+/g, '-');
   const priceOptions: Record<string, { full: string; monthlyDeposit: string; monthlySummary: string }> = {
     'credit-refresh': { full: '$1,100', monthlyDeposit: '$300', monthlySummary: '$200/mo' },
@@ -204,14 +204,11 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
   };
   const opts = priceOptions[planSlug] || { full: `$${tier.price}`, monthlyDeposit: '$0', monthlySummary: 'Deposit + monthly' };
 
-  const onCheckout = async (mode: 'full' | 'monthly') => {
-    try {
-      setIsLoading(true);
-      await handleCheckout(planSlug, mode);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigate = useNavigate()
+  const onCheckout = (mode: 'full' | 'monthly') => {
+    // route to signup flow with plan and mode
+    navigate(`/signup?plan=${planSlug}&mode=${mode}`)
+  }
 
   return (
     <div className={`self-start bg-white rounded-lg shadow-lg overflow-hidden border ${tier.recommended ? 'border-blue-500' : 'border-gray-200'} hover:shadow-xl transition-shadow ${closedBaseMinH} ${recommendedClosedMinH}`}>
@@ -255,34 +252,13 @@ const PriceCard: React.FC<{ tier: Tier; expanded: boolean; onToggle: () => void 
           </div>
         </div>
 
-        {/* Checkout buttons: Pay in Full and Deposit + Monthly */}
-        <div className="space-y-3">
+        {/* Single CTA: route users into the signup / multi-step flow. Payment option will be selected during signup/agreement. */}
+        <div className="">
           <button
-            onClick={() => onCheckout('full')}
-            disabled={isLoading}
+            onClick={() => navigate(`/signup?plan=${planSlug}`)}
             className={`w-full py-3 rounded-md font-semibold transition-colors flex items-center justify-center ${tier.recommended ? 'bg-[#f0d541] text-blue-800 hover:bg-[#e6cb3d]' : 'bg-blue-700 text-white hover:bg-blue-800'}`}
           >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>Pay in Full – {opts.full}</>
-            )}
-          </button>
-
-          <button
-            onClick={() => onCheckout('monthly')}
-            disabled={isLoading}
-            className="w-full py-3 rounded-md font-semibold border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 flex flex-col items-center justify-center"
-          >
-            <span className="text-sm text-gray-600">Deposit</span>
-            <span className="font-semibold text-base text-gray-900">{opts.monthlyDeposit}</span>
-            <span className="text-xs text-gray-500">+ {opts.monthlySummary}</span>
+            Get Started — {opts.full}
           </button>
         </div>
       </div>

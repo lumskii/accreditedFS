@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { Mail, CheckCircle } from 'lucide-react'
 import { push, ref, set } from 'firebase/database'
 import { database } from '../firebase'
-import { jsPDF } from 'jspdf'
-import emailjs from '@emailjs/browser'
+// jsPDF and emailjs are large. Import them dynamically inside the submit handler
 
 // Configure these with your EmailJS values (replace in production)
 const EMAILJS_SERVICE_ID = (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID'
@@ -36,12 +35,16 @@ const EmailSubscription: React.FC = () => {
         createdAt: new Date().toISOString(),
       })
 
-      // Generate PDF client-side and send via EmailJS
+      // Generate PDF client-side and send via EmailJS (dynamically import heavy libs)
       try {
-        const { base64, filename } = generatePdfBase64(trimmed)
+        const [{ jsPDF }, emailjs] = await Promise.all([
+          import('jspdf'),
+          import('@emailjs/browser')
+        ])
+        const { base64, filename } = generatePdfBase64WithJsPdf(jsPDF, trimmed)
         // EmailJS accepts attachments as base64 data URI in template params for many setups
-        // We'll use the browser SDK to send the template with an attachment param
-        await emailjs.send(
+        // Use the browser SDK to send the template with an attachment param
+        await (emailjs as any).send(
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ID,
           {
@@ -110,9 +113,10 @@ const EmailSubscription: React.FC = () => {
   )
 }
 
-// Helper: returns base64 string (no data: prefix) and filename
-function generatePdfBase64(emailAddress: string) {
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+// Helper: same as above but accepts jsPDF module to avoid static import
+function generatePdfBase64WithJsPdf(jsPDFModule: any, emailAddress: string) {
+  const doc = new jsPDFModule.jsPDF ? new jsPDFModule.jsPDF({ unit: 'pt', format: 'a4' }) : new jsPDFModule({ unit: 'pt', format: 'a4' })
+  // some jsPDF builds export as named `jsPDF` while older export provides the constructor directly
   doc.setFontSize(18)
   doc.text('Credit Dispute Letter', 72, 72)
   doc.setFontSize(11)
@@ -127,7 +131,7 @@ function generatePdfBase64(emailAddress: string) {
     'Accredited Financial Services',
   ]
   let y = 120
-  body.forEach(line => {
+  body.forEach((line: string) => {
     doc.text(line, 72, y)
     y += 18
   })
