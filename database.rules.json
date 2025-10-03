@@ -3,7 +3,13 @@
     "disputeRequests": {
       "$pushId": {
         ".read": "root.child('admins').child(auth.uid).val() == true",
-  ".write": "(!data.exists() && newData.child('email').isString() && newData.child('email').val().matches(/^[^@]+@[^@]+\\.[^@]+$/) && newData.child('createdAt').isString() && newData.child('createdAt').val().length <= 64)"
+        ".write": "!data.exists() && newData.hasChildren(['email','createdAt'])"
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
       }
     },
     "admins": {

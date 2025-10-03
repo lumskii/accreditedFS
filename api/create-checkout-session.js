@@ -19,10 +19,17 @@ const db = admin.database();
 
 export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
-  const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'https://accreditedfs.web.app';
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  const allowedOrigins = [
+  process.env.NEXT_PUBLIC_SITE_URL || '',
+  'https://accreditedfs.com',
+  'https://accreditedfs.web.app'
+];
+const origin = req.headers.origin;
+if (allowedOrigins.includes(origin)) {
+  res.setHeader('Access-Control-Allow-Origin', origin);
+}
+res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // Handle preflight request
   if (req.method === "OPTIONS") {
