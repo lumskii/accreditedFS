@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import app, { database } from '../firebase'
 import { getAuth, sendEmailVerification } from 'firebase/auth'
@@ -16,6 +16,8 @@ const Agreement: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [resendLoading, setResendLoading] = useState(false)
+  const pollingRef = useRef<number | null>(null)
+  const autoProceedRef = useRef(false)
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(u => {
@@ -27,6 +29,54 @@ const Agreement: React.FC = () => {
     })
     return unsub
   }, [])
+
+  // Poll auth.currentUser.reload() every few seconds when user exists but is not verified.
+  // This lets users click the verification link on another device and return here without
+  // having to click the "I verified — continue" button.
+  useEffect(() => {
+    // clear any existing poll when dependencies change
+    if (pollingRef.current) {
+      window.clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+
+    if (!user) return
+
+    // If user already verified, nothing to do
+    if (user.emailVerified) return
+
+    // Start polling every 5s
+    pollingRef.current = window.setInterval(async () => {
+      try {
+        if (auth.currentUser) await auth.currentUser.reload()
+        const fresh = auth.currentUser
+        if (fresh) setUser(fresh)
+        // If verification detected, stop polling and proceed once
+        if (fresh && fresh.emailVerified && !autoProceedRef.current) {
+          autoProceedRef.current = true
+          // give a tiny delay to let UI update before proceeding
+          setTimeout(() => {
+            checkVerifiedAndContinue().catch(() => {
+              // ignore errors here; UI will show them via existing error state
+            })
+          }, 200)
+          if (pollingRef.current) {
+            window.clearInterval(pollingRef.current)
+            pollingRef.current = null
+          }
+        }
+      } catch (e) {
+        // silent
+      }
+    }, 5000)
+
+    return () => {
+      if (pollingRef.current) {
+        window.clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [user])
 
   const handleSubmit = async () => {
     setError(null)
@@ -132,6 +182,9 @@ const Agreement: React.FC = () => {
         {user && !user.emailVerified ? (
           <div className="space-y-3">
             <div className="text-sm text-gray-700">Your email is not verified. Please verify before continuing to payment.</div>
+            <div className="text-sm text-gray-600">
+              After you click the verification link in your email, return to this page and click <strong>“I verified — continue”</strong> to proceed. If you opened the verification link on another device, wait a minute and then click the button here. Also check your spam folder if you don't see the email.
+            </div>
             <div className="flex items-center space-x-2">
               <button className="bg-yellow-500 text-white px-4 py-2 rounded" onClick={handleResendVerification} disabled={resendLoading}>
                 {resendLoading ? <Spinner size={16} /> : 'Resend verification email'}

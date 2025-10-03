@@ -43,10 +43,10 @@ const Signup: React.FC = () => {
       if (userCred.user) {
         await updateProfile(userCred.user, { displayName: name })
         // send verification with actionCodeSettings so the link returns to our app route /verify
-        const continueUrl = (import.meta.env.NEXT_PUBLIC_SITE_URL || '') + '/verify'
+        const continueUrl = (import.meta.env.VITE_SITE_URL || '') + '/verify'
         const actionCodeSettings = {
           url: continueUrl,
-          handleCodeInApp: false
+          handleCodeInApp: true
         }
         await sendEmailVerification(userCred.user, actionCodeSettings)
         // store basic profile in RTDB
