@@ -22,7 +22,9 @@ export default async function handler(req, res) {
  const allowedOrigins = [
   "https://accreditedfs.com",
   "https://accreditedfs.vercel.app",
-  "http://localhost:5173"
+  "https://accreditedfs.web.app",
+  "http://localhost:5173",
+  "http://localhost:3000"
 ];
 const origin = req.headers.origin;
 if (allowedOrigins.includes(origin)) {
