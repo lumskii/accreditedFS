@@ -19,12 +19,10 @@ const db = admin.database();
 
 export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
- const allowedOrigins = [
-  "https://accreditedfs.com",
-  "https://accreditedfs.vercel.app",
-  "https://accreditedfs.web.app",
-  "http://localhost:5173",
-  "http://localhost:3000"
+  const allowedOrigins = [
+  process.env.NEXT_PUBLIC_SITE_URL || '',
+  'http://localhost:5173',
+  'https://accreditedfs.vercel.app',
 ];
 const origin = req.headers.origin;
 if (allowedOrigins.includes(origin)) {

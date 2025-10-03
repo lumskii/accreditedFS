@@ -59,12 +59,8 @@ const Checkout: React.FC = () => {
         // Force a refreshed ID token so server sees updated emailVerified claim
         const idToken = await freshUser.getIdToken(true);
         // POST to backend to create checkout session
-        const apiBase =
-          import.meta.env.VITE_API_BASE ||
-          (import.meta.env.DEV
-            ? "http://localhost:3000"
-            : "https://accreditedfs.vercel.app");
-
+        const isDev = import.meta.env.DEV;
+        const apiBase = isDev ? "http://localhost:5173" : `${import.meta.env.VITE_API_BASE}`;
         const endpoint = `${apiBase}/api/create-checkout-session`;
 
         const body: Record<string, any> = {};
