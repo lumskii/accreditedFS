@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
   const allowedOrigins = [
   process.env.NEXT_PUBLIC_SITE_URL || '',
-  'https://accreditedfs.com',
+  'http://localhost:5173',
+  'https://accreditedfs.vercel.app',
   'https://accreditedfs.web.app'
 ];
 const origin = req.headers.origin;

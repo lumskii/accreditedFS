@@ -24,10 +24,6 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "destination": "https://accreditedfs.vercel.app/api/**"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
