@@ -19,17 +19,21 @@ const db = admin.database();
 
 export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
+  // Normalize origins (strip trailing slash) and allow Authorization header for preflight.
+  const normalize = (u) => (u ? u.replace(/\/$/, '') : '');
   const allowedOrigins = [
-  process.env.NEXT_PUBLIC_SITE_URL || '',
-  'http://localhost:5173',
-  'https://accreditedfs.vercel.app',
-];
-const origin = req.headers.origin;
-if (allowedOrigins.includes(origin)) {
-  res.setHeader('Access-Control-Allow-Origin', origin);
-}
-res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    normalize(process.env.NEXT_PUBLIC_SITE_URL),
+    'http://localhost:5173',
+    'https://accreditedfs.vercel.app',
+  ].filter(Boolean);
+  const origin = normalize(req.headers.origin || '');
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    // Let caches know the response varies by origin
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle preflight request
   if (req.method === "OPTIONS") {
