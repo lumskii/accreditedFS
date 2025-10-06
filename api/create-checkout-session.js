@@ -21,14 +21,36 @@ export default async function handler(req, res) {
   // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
   // Normalize origins (strip trailing slash) and allow Authorization header for preflight.
   const normalize = (u) => (u ? u.replace(/\/$/, '') : '');
-  const allowedOrigins = [
-    normalize(process.env.NEXT_PUBLIC_SITE_URL),
-    'http://localhost:5173',
-    'https://accreditedfs.vercel.app',
-  ].filter(Boolean);
-  const origin = normalize(req.headers.origin || '');
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  const configured = normalize(process.env.NEXT_PUBLIC_SITE_URL || '');
+  const allowedOrigins = [configured, 'http://localhost:5173', 'https://accreditedfs.vercel.app']
+    .filter(Boolean)
+    .map(normalize);
+
+  const rawOrigin = req.headers.origin || '';
+  let origin = '';
+  try {
+    origin = normalize(rawOrigin);
+  } catch (e) {
+    origin = '';
+  }
+
+  const originMatchesAllowed = (() => {
+    if (!origin) return false;
+    // direct match
+    if (allowedOrigins.includes(origin)) return true;
+    // allow if hostname ends with accreditedfs.com or vercel.app (covers subdomains)
+    try {
+      const u = new URL(origin);
+      const hn = u.hostname || '';
+      if (hn.endsWith('accreditedfs.com') || hn.endsWith('vercel.app') || hn === 'localhost') return true;
+    } catch (e) {
+      // ignore
+    }
+    return false;
+  })();
+
+  if (originMatchesAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
     // Let caches know the response varies by origin
     res.setHeader('Vary', 'Origin');
   }

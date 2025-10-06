@@ -59,9 +59,15 @@ const Checkout: React.FC = () => {
         // Force a refreshed ID token so server sees updated emailVerified claim
         const idToken = await freshUser.getIdToken(true);
         // POST to backend to create checkout session
-        const isDev = import.meta.env.DEV;
-        const apiBase = isDev ? "http://localhost:5173" : `${import.meta.env.VITE_API_BASE}`;
-        const endpoint = `${apiBase}/api/create-checkout-session`;
+  // Resolve API base:
+  // 1) VITE_API_BASE (explicit)
+  // 2) NEXT_PUBLIC_SITE_URL (canonical site)
+  // 3) fallback to vercel deployment domain
+  const envApi = import.meta.env.VITE_API_BASE;
+  const canonical = import.meta.env.NEXT_PUBLIC_SITE_URL;
+  const fallback = 'https://accreditedfs.vercel.app';
+  const apiBase = (envApi && String(envApi)) || (canonical && String(canonical)) || fallback;
+  const endpoint = `${apiBase.replace(/\/$/, '')}/api/create-checkout-session`;
 
         const body: Record<string, any> = {};
         if (plan) body.plan = plan;
