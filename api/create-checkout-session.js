@@ -22,7 +22,15 @@ export default async function handler(req, res) {
   // Normalize origins (strip trailing slash) and allow Authorization header for preflight.
   const normalize = (u) => (u ? u.replace(/\/$/, '') : '');
   const configured = normalize(process.env.NEXT_PUBLIC_SITE_URL || '');
-  const allowedOrigins = [configured, 'http://localhost:5173', 'https://accreditedfs.vercel.app']
+  const allowedOrigins = [
+    configured, 
+    'https://accreditedfs.com',           // Production frontend domain
+    'https://accreditedfs.web.app',       // Firebase hosting domain
+    'http://localhost:5173', 
+    'http://localhost:5174', 
+    'http://localhost:5175',
+    'https://accreditedfs.vercel.app'
+  ]
     .filter(Boolean)
     .map(normalize);
 
