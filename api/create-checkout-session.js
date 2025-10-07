@@ -18,52 +18,30 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 export default async function handler(req, res) {
-  // CORS: allow the frontend origin (configured via NEXT_PUBLIC_SITE_URL)
-  // Normalize origins (strip trailing slash) and allow Authorization header for preflight.
-  const normalize = (u) => (u ? u.replace(/\/$/, '') : '');
-  const configured = normalize(process.env.NEXT_PUBLIC_SITE_URL || '');
+  // Set CORS headers for all requests
+  const origin = req.headers.origin;
   const allowedOrigins = [
-    configured, 
-    'https://accreditedfs.com',           // Production frontend domain
-    'https://accreditedfs.web.app',       // Firebase hosting domain
-    'http://localhost:5173', 
-    'http://localhost:5174', 
-    'http://localhost:5175',
-    'https://accreditedfs.vercel.app'
-  ]
-    .filter(Boolean)
-    .map(normalize);
+    'https://accreditedfs.com',
+    'https://www.accreditedfs.com',
+    'https://accreditedfs.web.app',
+    'https://accreditedfs.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:4000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+  ];
 
-  const rawOrigin = req.headers.origin || '';
-  let origin = '';
-  try {
-    origin = normalize(rawOrigin);
-  } catch (e) {
-    origin = '';
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-
-  const originMatchesAllowed = (() => {
-    if (!origin) return false;
-    // direct match
-    if (allowedOrigins.includes(origin)) return true;
-    // allow if hostname ends with accreditedfs.com or vercel.app (covers subdomains)
-    try {
-      const u = new URL(origin);
-      const hn = u.hostname || '';
-      if (hn.endsWith('accreditedfs.com') || hn.endsWith('vercel.app') || hn === 'localhost') return true;
-    } catch (e) {
-      // ignore
-    }
-    return false;
-  })();
-
-  if (originMatchesAllowed) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    // Let caches know the response varies by origin
-    res.setHeader('Vary', 'Origin');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Vary', 'Origin');
 
   // Handle preflight request
   if (req.method === "OPTIONS") {

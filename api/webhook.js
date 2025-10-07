@@ -24,8 +24,17 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 export default async function handler(req, res) {
-    // Accept only POST
-    if (req.method !== "POST") {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Stripe-Signature');
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // Accept only POST
+  if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).end("Method Not Allowed");
     }
