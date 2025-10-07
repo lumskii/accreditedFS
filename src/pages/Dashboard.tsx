@@ -82,17 +82,25 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const { getAuth } = await import('firebase/auth')
+        const { getAuth, onAuthStateChanged } = await import('firebase/auth')
         const app = (await import('../firebase')).default
         const auth = getAuth(app)
         
-        const user = auth.currentUser
+        // Wait for auth state to be determined
+        const user = await new Promise<any>((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe()
+            resolve(user)
+          })
+        })
+        
         if (!user) {
           navigate('/signup')
           return
         }
 
-        const idToken = await user.getIdToken()
+        // Force token refresh to ensure we have a valid token
+        const idToken = await user.getIdToken(true)
         
         // Use the same API endpoint resolution logic as PricingSection
         const envApiBase = import.meta.env.VITE_API_BASE
@@ -103,6 +111,9 @@ const Dashboard: React.FC = () => {
           ? `${apiBase.replace(/\/$/, "")}/api/user-dashboard`
           : "/api/user-dashboard"
 
+        console.log('Making dashboard API call to:', endpoint)
+        console.log('Token length:', idToken.length)
+
         const response = await fetch(endpoint, {
           method: 'GET',
           headers: {
@@ -112,7 +123,9 @@ const Dashboard: React.FC = () => {
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch dashboard data: ${response.statusText}`)
+          const errorText = await response.text()
+          console.error('Dashboard API error response:', errorText)
+          throw new Error(`Failed to fetch dashboard data: ${response.status} ${response.statusText}`)
         }
 
         const data = await response.json()

@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
             <p className="mb-4">Helping individuals and families improve their credit scores and achieve financial freedom since 2018.</p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-white transition-colors"><Facebook size={20} /></a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors"><Instagram size={20} /></a>
+              {/* <a href="#" className="text-gray-300 hover:text-white transition-colors"><Instagram size={20} /></a> */}
               <a href="#" className="text-gray-300 hover:text-white transition-colors"><Linkedin size={20} /></a>
             </div>
           </div>
@@ -22,15 +22,15 @@ const Footer: React.FC = () => {
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
               <li><a href="#benefits" className="hover:text-white transition-colors">Why Choose Us</a></li>
               <li><a href="#testimonials" className="hover:text-white transition-colors">Success Stories</a></li>
-              <li><a href="#about" className="hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
               <li><a href="#booking" className="hover:text-white transition-colors">Book Consultation</a></li>
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Contact Us</h3>
             <ul className="space-y-3">
-              <li className="flex items-start"><Phone className="h-5 w-5 mr-3 mt-0.5" /> <span>(602) 555-1234</span></li>
-              <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditedfinancial.com</span></li>
+              <li className="flex items-start"><Phone className="h-5 w-5 mr-3 mt-0.5" /> <span>(928) 320-7474</span></li>
+              <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditesfs.com</span></li>
             </ul>
           </div>
         </div>

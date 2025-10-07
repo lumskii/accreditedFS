@@ -12,15 +12,15 @@ const Testimonials: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="bg-white p-6 rounded-lg shadow-md border-b-4 border-[#f0d541]">
             <div className="flex text-[#f0d541] mb-4">
-              <Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} />
+              <Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" />
             </div>
-            <p className="text-gray-600 mb-4">"After struggling with poor credit for years, Prestigious Financial Services helped me increase my score by 120 points in just 4 months. I was finally able to qualify for a home loan!"</p>
+            <p className="text-gray-600 mb-4">"After struggling with poor credit for years, Accredited Financial Services helped me increase my score by 120 points in just 4 months. I was finally able to qualify for a home loan!"</p>
             <div className="font-semibold">Michael R.</div>
             <div className="text-sm text-gray-500">Scottsdale, AZ</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-md border-b-4 border-[#f0d541]">
             <div className="flex text-[#f0d541] mb-4">
-              <Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} />
+              <Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" />
             </div>
             <p className="text-gray-600 mb-4">"The personalized approach made all the difference. They identified errors on my report that I had no idea existed and got them removed within weeks. My score jumped 85 points!"</p>
             <div className="font-semibold">Sarah T.</div>
@@ -28,7 +28,7 @@ const Testimonials: React.FC = () => {
           </div>
           <div className="bg-white p-6 rounded-lg shadow-md border-b-4 border-[#f0d541]">
             <div className="flex text-[#f0d541] mb-4">
-              <Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} /><Star size={20} />
+              <Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" />
             </div>
             <p className="text-gray-600 mb-4">"I was denied for an auto loan due to my credit score. After working with Prestigious Financial Services for 3 months, I was approved with a great interest rate. Their expertise is worth every penny."</p>
             <div className="font-semibold">David L.</div>

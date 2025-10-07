@@ -5,6 +5,15 @@
     },
     "api/webhook.js": {
       "maxDuration": 10
+    },
+    "api/user-dashboard.js": {
+      "maxDuration": 15
+    },
+    "api/update-progress.js": {
+      "maxDuration": 10
+    },
+    "api/health-check.js": {
+      "maxDuration": 10
     }
   },
   "headers": [

@@ -48,27 +48,43 @@ export default async function handler(req, res) {
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
     if (missingVars.length > 0) {
       console.error('Missing environment variables:', missingVars);
-      return res.status(500).json({ error: `Missing environment variables: ${missingVars.join(', ')}` });
+      return res.status(500).json({ 
+        error: `Missing environment variables: ${missingVars.join(', ')}`,
+        type: 'ENV_VARS_MISSING'
+      });
     }
 
     stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     
     // Initialize Firebase Admin only when needed
     if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
-          // private key needs newlines
-          privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-        databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
-      })
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+            clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
+            // private key needs newlines
+            privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+          }),
+          databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+        })
+      } catch (firebaseError) {
+        console.error('Firebase Admin initialization failed:', firebaseError);
+        return res.status(500).json({ 
+          error: 'Firebase Admin initialization failed', 
+          details: firebaseError.message,
+          type: 'FIREBASE_INIT_ERROR'
+        });
+      }
     }
     db = admin.database();
   } catch (error) {
     console.error('Service initialization failed:', error);
-    return res.status(500).json({ error: 'Server configuration error', details: error.message });
+    return res.status(500).json({ 
+      error: 'Server configuration error', 
+      details: error.message,
+      type: 'SERVICE_INIT_ERROR'
+    });
   }
 
   // Only accept GET for fetching dashboard data
@@ -224,8 +240,22 @@ export default async function handler(req, res) {
     res.json(dashboardData);
   } catch (err) {
     console.error('Dashboard API Error:', err);
+    
+    // More specific error handling
+    let errorType = 'UNKNOWN_ERROR';
+    if (err.code === 'auth/id-token-expired') {
+      errorType = 'TOKEN_EXPIRED';
+    } else if (err.code === 'auth/invalid-id-token') {
+      errorType = 'INVALID_TOKEN';
+    } else if (err.message.includes('Firebase')) {
+      errorType = 'FIREBASE_ERROR';
+    } else if (err.message.includes('Stripe')) {
+      errorType = 'STRIPE_ERROR';
+    }
+    
     res.status(500).json({ 
       error: err.message,
+      type: errorType,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
       timestamp: new Date().toISOString()
     });
