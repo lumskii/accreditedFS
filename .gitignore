@@ -49,3 +49,4 @@ coverage/
 /.pnp/
 *.pem
 node_modules
+.vercel
