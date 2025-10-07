@@ -1,24 +1,8 @@
 import Stripe from "stripe";
 import * as admin from 'firebase-admin'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// Initialize Firebase Admin with service account from env (if not already)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
-      // private key needs newlines
-      privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    }),
-    databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
-  })
-}
-const db = admin.database();
-
 export default async function handler(req, res) {
-  // Set CORS headers for all requests
+  // Set CORS headers for all requests FIRST
   const origin = req.headers.origin;
   const allowedOrigins = [
     'https://accreditedfs.com',
@@ -44,9 +28,47 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Vary', 'Origin');
 
-  // Handle preflight request
+  // Handle preflight request BEFORE any other logic
   if (req.method === "OPTIONS") {
     return res.status(200).end();
+  }
+
+  // Initialize services only when needed (not during OPTIONS)
+  let stripe, db;
+  try {
+    // Check required environment variables
+    const requiredEnvVars = [
+      'STRIPE_SECRET_KEY',
+      'VITE_FIREBASE_PROJECT_ID', 
+      'VITE_FIREBASE_CLIENT_EMAIL',
+      'VITE_FIREBASE_PRIVATE_KEY',
+      'VITE_FIREBASE_DATABASE_URL'
+    ];
+    
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      console.error('Missing environment variables:', missingVars);
+      return res.status(500).json({ error: `Missing environment variables: ${missingVars.join(', ')}` });
+    }
+
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    
+    // Initialize Firebase Admin only when needed
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+          clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
+          // private key needs newlines
+          privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+        }),
+        databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+      })
+    }
+    db = admin.database();
+  } catch (error) {
+    console.error('Service initialization failed:', error);
+    return res.status(500).json({ error: 'Server configuration error', details: error.message });
   }
 
   // Only accept POST for creating a checkout session
@@ -102,14 +124,34 @@ export default async function handler(req, res) {
       },
     };
 
+    // Validate plan and mode
+    if (!PRICE_IDS[plan]) {
+      return res.status(400).json({ error: `Invalid plan: ${plan}` });
+    }
+    
+    if (!['full', 'monthly'].includes(mode)) {
+      return res.status(400).json({ error: `Invalid mode: ${mode}` });
+    }
+
     let line_items = [];
 
     if (mode === "full") {
-      line_items.push({ price: PRICE_IDS[plan].full, quantity: 1 });
+      const priceId = PRICE_IDS[plan].full;
+      if (!priceId) {
+        return res.status(500).json({ error: `Missing price ID for ${plan} full payment` });
+      }
+      line_items.push({ price: priceId, quantity: 1 });
     } else if (mode === "monthly") {
+      const depositPriceId = PRICE_IDS[plan].deposit;
+      const monthlyPriceId = PRICE_IDS[plan].monthly;
+      
+      if (!depositPriceId || !monthlyPriceId) {
+        return res.status(500).json({ error: `Missing price IDs for ${plan} monthly payment` });
+      }
+      
       line_items.push(
-        { price: PRICE_IDS[plan].deposit, quantity: 1 },
-        { price: PRICE_IDS[plan].monthly, quantity: 1 }
+        { price: depositPriceId, quantity: 1 },
+        { price: monthlyPriceId, quantity: 1 }
       );
     }
 
@@ -131,8 +173,8 @@ export default async function handler(req, res) {
       mode: mode === "full" ? "payment" : "subscription",
       line_items,
       customer: stripeCustomerId,
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
+      success_url: `https://accreditedfs.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://accreditedfs.com/cancel`,
     });
 
     // store session info under user
@@ -146,6 +188,11 @@ export default async function handler(req, res) {
 
     res.json({ id: session.id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('API Error:', err);
+    res.status(500).json({ 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
   }
 }
