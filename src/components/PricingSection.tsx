@@ -49,6 +49,30 @@ async function handleCheckout(plan: string, mode: "full" | "monthly") {
 const PricingSection: React.FC = () => {
   // track expanded state per-tier so multiple tiers can be opened independently
   const [expandedMap, setExpandedMap] = useState<Record<number, boolean>>({});
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  // Check authentication state
+  useEffect(() => {
+    const checkAuthState = async () => {
+      try {
+        const { getAuth, onAuthStateChanged } = await import('firebase/auth')
+        const app = (await import('../firebase')).default
+        const auth = getAuth(app)
+        
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setIsAuthenticated(!!user)
+        })
+
+        return unsubscribe
+      } catch (error) {
+        console.warn('Auth state check failed', error)
+        setIsAuthenticated(false)
+      }
+    }
+
+    checkAuthState()
+  }, [])
+  
   const toggleExpand = (tierId: number) => {
     setExpandedMap((prev) => ({ ...prev, [tierId]: !prev[tierId] }));
   };
@@ -142,6 +166,7 @@ const PricingSection: React.FC = () => {
               tier={tier}
               expanded={!!expandedMap[tier.id]}
               onToggle={() => toggleExpand(tier.id)}
+              isAuthenticated={isAuthenticated}
             />
           ))}
         </div>
@@ -254,7 +279,8 @@ const PriceCard: React.FC<{
   tier: Tier;
   expanded: boolean;
   onToggle: () => void;
-}> = ({ tier, expanded, onToggle }) => {
+  isAuthenticated: boolean | null;
+}> = ({ tier, expanded, onToggle, isAuthenticated }) => {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [maxH, setMaxH] = useState<string>("0px");
 
@@ -306,8 +332,26 @@ const PriceCard: React.FC<{
   };
 
   const navigate = useNavigate();
-  const onCheckout = (mode: "full" | "monthly") => {
-    // route to signup flow with plan and mode
+  const onCheckout = async (mode: "full" | "monthly") => {
+    // If not authenticated, redirect to signup/login
+    if (isAuthenticated === false) {
+      navigate(`/signup?plan=${planSlug}&mode=${mode}`);
+      return;
+    }
+    
+    // If authenticated, try to proceed to checkout
+    if (isAuthenticated === true) {
+      try {
+        await handleCheckout(planSlug, mode);
+      } catch (error) {
+        console.error('Checkout failed:', error);
+        // If checkout fails (e.g., not verified or no agreement), let the protected route handle it
+        navigate(`/checkout?plan=${planSlug}&mode=${mode}`);
+      }
+      return;
+    }
+    
+    // If authentication state is still loading, wait a bit or default to signup
     navigate(`/signup?plan=${planSlug}&mode=${mode}`);
   };
 

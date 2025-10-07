@@ -59,8 +59,20 @@ const Navbar: React.FC = () => {
             {/* Admin link removed for public navigation */}
             <a href="#about" className="text-gray-700 hover:text-blue-800 transition-colors">About</a>
             <a href="#booking" className="bg-[#f0d541] text-blue-800 px-4 py-2 rounded-md hover:bg-[#e6cb3d] transition-colors font-medium">Book Consultation</a>
-            {!isLoading && isLoggedIn && (
-              <button onClick={handleLogout} className="bg-transparent text-sm text-gray-700 hover:text-blue-800 transition-colors">Logout</button>
+            {!isLoading && (
+              <>
+                {isLoggedIn ? (
+                  <>
+                    <a href="/dashboard" className="text-blue-800 hover:text-blue-900 font-medium transition-colors">Dashboard</a>
+                    <button onClick={handleLogout} className="bg-transparent text-sm text-gray-700 hover:text-blue-800 transition-colors">Logout</button>
+                  </>
+                ) : (
+                  <>
+                    <a href="/login" className="text-gray-700 hover:text-blue-800 transition-colors">Login</a>
+                    <a href="/signup" className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900 transition-colors font-medium">Sign Up</a>
+                  </>
+                )}
+              </>
             )}
           </div>
           <div className="md:hidden flex items-center">
@@ -80,16 +92,28 @@ const Navbar: React.FC = () => {
             {/* Admin link removed for public navigation */}
             <a href="#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>About</a>
             <a href="#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Book Consultation</a>
-            {!isLoading && isLoggedIn && (
-              <button 
-                onClick={() => {
-                  setIsMenuOpen(false)
-                  handleLogout()
-                }} 
-                className="block w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md"
-              >
-                Logout
-              </button>
+            {!isLoading && (
+              <>
+                {isLoggedIn ? (
+                  <>
+                    <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        handleLogout()
+                      }} 
+                      className="block w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <a href="/login" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Login</a>
+                    <a href="/signup" className="block px-3 py-2 bg-blue-800 text-white font-medium rounded-md hover:bg-blue-900" onClick={() => setIsMenuOpen(false)}>Sign Up</a>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

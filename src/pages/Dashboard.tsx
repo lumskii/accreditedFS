@@ -1,0 +1,541 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { 
+  CreditCard, 
+  Calendar, 
+  TrendingUp, 
+  FileText, 
+  User, 
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Star,
+  Download
+} from 'lucide-react'
+
+interface DashboardData {
+  user: {
+    uid: string
+    email: string
+    emailVerified: boolean
+    displayName?: string
+    joinDate: string
+  }
+  currentPlan: {
+    id: string
+    status: string
+    currentPeriodEnd: string
+    plan: string
+  } | null
+  paymentHistory: Array<{
+    id: string
+    amount: number
+    currency: string
+    status: string
+    description: string
+    created: string
+    receiptUrl?: string
+  }>
+  subscriptions: Array<{
+    id: string
+    status: string
+    currentPeriodStart: string
+    currentPeriodEnd: string
+    plan: string
+    amount: number
+  }>
+  upcomingInvoices: Array<{
+    id: string
+    amount: number
+    currency: string
+    dueDate: string
+    status: string
+  }>
+  progress: {
+    creditScore: {
+      current: number | null
+      initial: number | null
+      goal: number | null
+      lastUpdated: string | null
+    }
+    disputesSubmitted: number
+    disputesResolved: number
+    itemsRemoved: number
+    milestones: Array<{
+      title: string
+      completed: boolean
+      date?: string
+    }>
+  }
+  sessions: any[]
+  agreement: { agreed: boolean }
+}
+
+const Dashboard: React.FC = () => {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress'>('overview')
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const { getAuth } = await import('firebase/auth')
+        const app = (await import('../firebase')).default
+        const auth = getAuth(app)
+        
+        const user = auth.currentUser
+        if (!user) {
+          navigate('/signup')
+          return
+        }
+
+        const idToken = await user.getIdToken()
+        
+        // Use the same API endpoint resolution logic as PricingSection
+        const envApiBase = import.meta.env.VITE_API_BASE
+        const isDev = import.meta.env.MODE === "development"
+        const defaultProdApi = "https://api.accreditedfs.com"
+        const apiBase = envApiBase || (isDev ? "" : defaultProdApi)
+        const endpoint = apiBase
+          ? `${apiBase.replace(/\/$/, "")}/api/user-dashboard`
+          : "/api/user-dashboard"
+
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch dashboard data: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        setDashboardData(data)
+      } catch (err: any) {
+        console.error('Dashboard fetch error:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [navigate])
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency
+    }).format(amount)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-800"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <AlertCircle className="mx-auto h-12 w-12 text-gray-500 mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Data Available</h2>
+          <p className="text-gray-600">Please try refreshing the page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, {dashboardData.user.displayName || dashboardData.user.email.split('@')[0]}!
+          </h1>
+          <p className="text-gray-600 mt-2">Track your credit repair progress and manage your account</p>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'overview', label: 'Overview', icon: User },
+              { id: 'payments', label: 'Payments', icon: CreditCard },
+              { id: 'progress', label: 'Progress', icon: TrendingUp }
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id as any)}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  activeTab === id
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className="mr-2 h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-blue-800" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Credit Score</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {dashboardData.progress.creditScore.current || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Items Removed</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {dashboardData.progress.itemsRemoved}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Disputes Active</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {dashboardData.progress.disputesSubmitted - dashboardData.progress.disputesResolved}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Star className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600">Current Plan</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {dashboardData.currentPlan?.plan || 'No Active Plan'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Plan Status */}
+            {dashboardData.currentPlan && (
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Plan</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xl font-bold text-blue-800">{dashboardData.currentPlan.plan}</p>
+                    <p className="text-gray-600">
+                      Status: <span className="capitalize">{dashboardData.currentPlan.status}</span>
+                    </p>
+                    <p className="text-gray-600">
+                      Next billing: {formatDate(dashboardData.currentPlan.currentPeriodEnd)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <button className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900">
+                      Manage Plan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Recent Activity */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+              {dashboardData.paymentHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {dashboardData.paymentHistory.slice(0, 3).map((payment) => (
+                    <div key={payment.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                      <div>
+                        <p className="font-medium text-gray-900">{payment.description}</p>
+                        <p className="text-sm text-gray-600">{formatDate(payment.created)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCurrency(payment.amount, payment.currency)}</p>
+                        <p className={`text-sm capitalize ${
+                          payment.status === 'succeeded' ? 'text-green-600' : 
+                          payment.status === 'pending' ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {payment.status}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">No recent activity</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payments Tab */}
+        {activeTab === 'payments' && (
+          <div className="space-y-6">
+            {/* Upcoming Invoices */}
+            {dashboardData.upcomingInvoices.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Payments</h3>
+                <div className="space-y-3">
+                  {dashboardData.upcomingInvoices.map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">Subscription Payment</p>
+                        <p className="text-sm text-gray-600">Due: {formatDate(invoice.dueDate)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCurrency(invoice.amount, invoice.currency)}</p>
+                        <p className="text-sm text-blue-600 capitalize">{invoice.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Payment History */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h3>
+              {dashboardData.paymentHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Date</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Description</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Amount</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Receipt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboardData.paymentHistory.map((payment) => (
+                        <tr key={payment.id} className="border-b border-gray-100">
+                          <td className="py-3 px-4 text-gray-900">{formatDate(payment.created)}</td>
+                          <td className="py-3 px-4 text-gray-900">{payment.description}</td>
+                          <td className="py-3 px-4 text-gray-900">{formatCurrency(payment.amount, payment.currency)}</td>
+                          <td className="py-3 px-4">
+                            <span className={`capitalize px-2 py-1 rounded-full text-xs ${
+                              payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : 
+                              payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {payment.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            {payment.receiptUrl && (
+                              <a 
+                                href={payment.receiptUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-600">No payment history available</p>
+              )}
+            </div>
+
+            {/* Active Subscriptions */}
+            {dashboardData.subscriptions.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Subscriptions</h3>
+                <div className="space-y-4">
+                  {dashboardData.subscriptions.map((subscription) => (
+                    <div key={subscription.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{subscription.plan}</p>
+                          <p className="text-sm text-gray-600">
+                            Status: <span className="capitalize">{subscription.status}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Period: {formatDate(subscription.currentPeriodStart)} - {formatDate(subscription.currentPeriodEnd)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">{formatCurrency(subscription.amount)}/month</p>
+                          <button className="text-sm text-blue-600 hover:text-blue-800 mt-1">
+                            Manage
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Progress Tab */}
+        {activeTab === 'progress' && (
+          <div className="space-y-6">
+            {/* Credit Score Progress */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Credit Score Progress</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-1">Initial Score</p>
+                  <p className="text-3xl font-bold text-gray-400">
+                    {dashboardData.progress.creditScore.initial || 'N/A'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-1">Current Score</p>
+                  <p className="text-3xl font-bold text-blue-800">
+                    {dashboardData.progress.creditScore.current || 'N/A'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-1">Goal Score</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {dashboardData.progress.creditScore.goal || 'N/A'}
+                  </p>
+                </div>
+              </div>
+              {dashboardData.progress.creditScore.lastUpdated && (
+                <p className="text-sm text-gray-600 mt-4 text-center">
+                  Last updated: {formatDate(dashboardData.progress.creditScore.lastUpdated)}
+                </p>
+              )}
+            </div>
+
+            {/* Dispute Progress */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispute Progress</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-800">{dashboardData.progress.disputesSubmitted}</p>
+                  <p className="text-sm text-gray-600">Disputes Submitted</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">{dashboardData.progress.disputesResolved}</p>
+                  <p className="text-sm text-gray-600">Disputes Resolved</p>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {dashboardData.progress.disputesSubmitted - dashboardData.progress.disputesResolved}
+                  </p>
+                  <p className="text-sm text-gray-600">In Progress</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Milestones</h3>
+              {dashboardData.progress.milestones.length > 0 ? (
+                <div className="space-y-3">
+                  {dashboardData.progress.milestones.map((milestone, index) => (
+                    <div key={index} className="flex items-center p-3 border border-gray-200 rounded-lg">
+                      <div className={`p-2 rounded-full mr-3 ${
+                        milestone.completed ? 'bg-green-100' : 'bg-gray-100'
+                      }`}>
+                        <CheckCircle className={`h-5 w-5 ${
+                          milestone.completed ? 'text-green-600' : 'text-gray-400'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className={`font-medium ${
+                          milestone.completed ? 'text-gray-900' : 'text-gray-600'
+                        }`}>
+                          {milestone.title}
+                        </p>
+                        {milestone.date && (
+                          <p className="text-sm text-gray-500">
+                            Completed: {formatDate(milestone.date)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600">No milestones tracked yet</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Milestones will appear here as we work on your credit repair
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default Dashboard

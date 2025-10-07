@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import ProtectedRoute from './components/ProtectedRoute'
 const Hero = React.lazy(() => import('./components/Hero'))
 const Services = React.lazy(() => import('./components/Services'))
 const PricingSection = React.lazy(() => import('./components/PricingSection'))
@@ -11,11 +12,13 @@ const About = React.lazy(() => import('./components/About'))
 const BookingCTA = React.lazy(() => import('./components/BookingCTA'))
 import Footer from './components/Footer'
 import Signup from './pages/Signup'
+import Login from './pages/Login'
 import Agreement from './pages/Agreement'
 import Success from './components/Success'
 import Cancel from './components/Cancel'
 import Checkout from './pages/Checkout'
 import Verify from './pages/Verify'
+import Dashboard from './pages/Dashboard'
 
 const Home: React.FC = () => (
   <main className="flex-grow">
@@ -40,12 +43,49 @@ export function App() {
 
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/agreement" element={<Agreement />} />
-          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Login />} />
           <Route path="/verify" element={<Verify />} />
-          <Route path="/success" element={<Success />} />
-          <Route path="/cancel" element={<Cancel />} />
+          <Route 
+            path="/agreement" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={false}>
+                <Agreement />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/checkout" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+                <Checkout />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/success" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+                <Success />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/cancel" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+                <Cancel />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
 
         <Footer />
