@@ -2,15 +2,24 @@
   "rules": {
     "disputeRequests": {
       "$pushId": {
-        ".read": "root.child('admins').child(auth.uid).val() == true",
+        ".read": "root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
         ".write": "!data.exists() && newData.hasChildren(['email','createdAt'])"
       }
     },
     "users": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
-      }
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)"
+      },
+      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true"
+    },
+    "payments_by_session": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
+      ".write": false
+    },
+    "payments_orphans": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
+      ".write": false
     },
     "admins": {
       ".read": false,

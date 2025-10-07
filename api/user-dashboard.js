@@ -121,6 +121,13 @@ export default async function handler(req, res) {
     let upcomingInvoices = [];
     let currentPlan = null;
 
+    // First check if user has a current plan stored in Firebase
+    const currentPlanRef = db.ref(`users/${decoded.uid}/currentPlan`);
+    const currentPlanSnap = await currentPlanRef.get();
+    if (currentPlanSnap.exists()) {
+      currentPlan = currentPlanSnap.val();
+    }
+
     if (userData.stripe?.customerId) {
       try {
         // Get payment intents (one-time payments)
@@ -155,25 +162,43 @@ export default async function handler(req, res) {
           }
         }
 
-        // Format payment history
-        paymentHistory = charges.data.map(charge => ({
-          id: charge.id,
-          amount: charge.amount / 100, // Convert from cents
-          currency: charge.currency.toUpperCase(),
-          status: charge.status,
-          description: charge.description || 'Payment',
-          created: new Date(charge.created * 1000).toISOString(),
-          receiptUrl: charge.receipt_url
-        }));
+        // Format payment history with error handling
+        paymentHistory = charges.data.map(charge => {
+          let createdDate;
+          try {
+            createdDate = new Date(charge.created * 1000).toISOString();
+          } catch (e) {
+            console.warn('Invalid charge created timestamp:', charge.created);
+            createdDate = new Date().toISOString(); // fallback to current time
+          }
+          
+          return {
+            id: charge.id,
+            amount: charge.amount / 100, // Convert from cents
+            currency: charge.currency.toUpperCase(),
+            status: charge.status,
+            description: charge.description || 'Payment',
+            created: createdDate,
+            receiptUrl: charge.receipt_url
+          };
+        });
 
-        // Determine current plan from active subscriptions
-        if (subscriptions.length > 0) {
+        // If no currentPlan from Firebase, determine from active Stripe subscriptions
+        if (!currentPlan && subscriptions.length > 0) {
           const activeSubscription = subscriptions.find(sub => sub.status === 'active');
           if (activeSubscription) {
+            let currentPeriodEnd;
+            try {
+              currentPeriodEnd = new Date(activeSubscription.current_period_end * 1000).toISOString();
+            } catch (e) {
+              console.warn('Invalid subscription period end:', activeSubscription.current_period_end);
+              currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days from now
+            }
+            
             currentPlan = {
               id: activeSubscription.id,
               status: activeSubscription.status,
-              currentPeriodEnd: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+              currentPeriodEnd: currentPeriodEnd,
               plan: activeSubscription.items.data[0]?.price?.nickname || 'Unknown Plan'
             };
           }
@@ -202,25 +227,54 @@ export default async function handler(req, res) {
         email: userRecord.email,
         emailVerified: userRecord.emailVerified,
         displayName: userRecord.displayName,
-        joinDate: new Date(parseInt(userRecord.metadata.creationTime)).toISOString()
+        joinDate: userRecord.metadata.creationTime // This is already an ISO string
       },
       currentPlan,
-      paymentHistory: paymentHistory.sort((a, b) => new Date(b.created) - new Date(a.created)),
-      subscriptions: subscriptions.map(sub => ({
-        id: sub.id,
-        status: sub.status,
-        currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
-        currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
-        plan: sub.items.data[0]?.price?.nickname || 'Unknown Plan',
-        amount: sub.items.data[0]?.price?.unit_amount ? sub.items.data[0].price.unit_amount / 100 : 0
-      })),
-      upcomingInvoices: upcomingInvoices.map(invoice => ({
-        id: invoice.id,
-        amount: invoice.amount_due / 100,
-        currency: invoice.currency.toUpperCase(),
-        dueDate: new Date(invoice.due_date * 1000).toISOString(),
-        status: invoice.status
-      })),
+      paymentHistory: paymentHistory.sort((a, b) => {
+        try {
+          return new Date(b.created).getTime() - new Date(a.created).getTime();
+        } catch (e) {
+          return 0; // Keep original order if dates are invalid
+        }
+      }),
+      subscriptions: subscriptions.map(sub => {
+        let currentPeriodStart, currentPeriodEnd;
+        try {
+          currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
+        } catch (e) {
+          currentPeriodStart = new Date().toISOString();
+        }
+        try {
+          currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        } catch (e) {
+          currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        }
+        
+        return {
+          id: sub.id,
+          status: sub.status,
+          currentPeriodStart,
+          currentPeriodEnd,
+          plan: sub.items.data[0]?.price?.nickname || 'Unknown Plan',
+          amount: sub.items.data[0]?.price?.unit_amount ? sub.items.data[0].price.unit_amount / 100 : 0
+        };
+      }),
+      upcomingInvoices: upcomingInvoices.map(invoice => {
+        let dueDate;
+        try {
+          dueDate = new Date(invoice.due_date * 1000).toISOString();
+        } catch (e) {
+          dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days from now
+        }
+        
+        return {
+          id: invoice.id,
+          amount: invoice.amount_due / 100,
+          currency: invoice.currency.toUpperCase(),
+          dueDate,
+          status: invoice.status
+        };
+      }),
       sessions,
       progress: progress || {
         creditScore: {

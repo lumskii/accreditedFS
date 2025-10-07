@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold text-white mb-4">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-start"><Phone className="h-5 w-5 mr-3 mt-0.5" /> <span>(928) 320-7474</span></li>
-              <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditesfs.com</span></li>
+              <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditedfs.com</span></li>
             </ul>
           </div>
         </div>

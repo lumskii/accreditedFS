@@ -91,6 +91,21 @@ export default async function handler(req, res) {
         await db.ref(`payments_by_session/${sessionId}`).set(record);
         if (uid) {
           await db.ref(`users/${uid}/payments/${sessionId}`).set(record);
+          
+          // Update user's current plan based on the purchase
+          const planName = session.metadata?.plan || 'unknown';
+          const currentPlan = {
+            id: sessionId,
+            name: planName,
+            status: 'active',
+            mode: session.mode,
+            purchasedAt: new Date().toISOString(),
+            amount: session.amount_total / 100,
+            currency: session.currency
+          };
+          
+          await db.ref(`users/${uid}/currentPlan`).set(currentPlan);
+          console.log('✅ Current plan updated for user', uid, 'to', planName);
         } else {
           await db.ref(`payments_orphans/${sessionId}`).set(record);
         }

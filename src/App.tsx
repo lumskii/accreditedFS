@@ -13,11 +13,14 @@ const BookingCTA = React.lazy(() => import('./components/BookingCTA'))
 import Footer from './components/Footer'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
 import Agreement from './pages/Agreement'
 import Success from './components/Success'
 import Cancel from './components/Cancel'
 import Checkout from './pages/Checkout'
 import Verify from './pages/Verify'
+import VerifyEmail from './pages/VerifyEmail'
 import Dashboard from './pages/Dashboard'
 
 const Home: React.FC = () => (
@@ -46,6 +49,12 @@ export function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Login />} />
           <Route path="/verify" element={<Verify />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          
           <Route 
             path="/agreement" 
             element={

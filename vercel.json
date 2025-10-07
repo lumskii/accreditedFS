@@ -14,6 +14,12 @@
     },
     "api/health-check.js": {
       "maxDuration": 10
+    },
+    "api/test-auth.js": {
+      "maxDuration": 10
+    },
+    "api/set-admin.js": {
+      "maxDuration": 10
     }
   },
   "headers": [

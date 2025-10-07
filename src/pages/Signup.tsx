@@ -23,9 +23,9 @@ const Signup: React.FC = () => {
   const [modeState, setModeState] = useState<string>(initialMode)
 
   useEffect(() => {
-    // If user is already logged in go to agreement
+    // If user is already logged in and verified, go to agreement
     const unsubscribe = auth.onAuthStateChanged(user => {
-      if (user) {
+      if (user && user.emailVerified) {
         navigate('/agreement')
       }
     })
@@ -36,6 +36,38 @@ const Signup: React.FC = () => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    // Validate required fields
+    if (!name.trim()) {
+      setError('Full name is required')
+      setLoading(false)
+      return
+    }
+
+    if (!phone.trim()) {
+      setError('Phone number is required')
+      setLoading(false)
+      return
+    }
+
+    if (!email.trim()) {
+      setError('Email is required')
+      setLoading(false)
+      return
+    }
+
+    if (!password.trim()) {
+      setError('Password is required')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     try {
       // try register
       const userCred = await createUserWithEmailAndPassword(auth, email, password)
@@ -54,7 +86,8 @@ const Signup: React.FC = () => {
           name,
           phone,
           email,
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          emailVerified: false
         })
         // persist chosen plan/mode
         await set(ref(database, `users/${userCred.user.uid}/flow`), {
@@ -62,12 +95,17 @@ const Signup: React.FC = () => {
           mode: modeState,
           signupAt: Date.now()
         })
-        navigate('/agreement')
+        // Navigate to verification page instead of agreement
+        navigate('/verify-email')
       }
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
         setError('Email already exists. Please log in instead.')
         setIsExisting(true)
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Please use at least 6 characters.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.')
       } else {
         setError(err.message || 'Signup failed')
       }
@@ -103,7 +141,14 @@ const Signup: React.FC = () => {
         {error && <div className="text-red-600 mb-2">{error}</div>}
 
         <form onSubmit={isExisting ? handleLogin : handleSignup} className="space-y-3">
-          <input className="w-full border rounded px-3 py-2" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
+                                  <input
+                          type="text"
+                          placeholder="Full Name *"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
           <input className="w-full border rounded px-3 py-2" placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} required />
           <input className="w-full border rounded px-3 py-2" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input className="w-full border rounded px-3 py-2" placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />

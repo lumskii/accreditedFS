@@ -82,22 +82,34 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        setLoading(true)
+        setError(null)
+        
         const { getAuth, onAuthStateChanged } = await import('firebase/auth')
         const app = (await import('../firebase')).default
         const auth = getAuth(app)
         
-        // Wait for auth state to be determined
-        const user = await new Promise<any>((resolve) => {
+        // Wait for auth state to be determined with timeout
+        const user = await new Promise<any>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            unsubscribe()
+            reject(new Error('Authentication timeout'))
+          }, 10000) // 10 second timeout
+          
           const unsubscribe = onAuthStateChanged(auth, (user) => {
+            clearTimeout(timeout)
             unsubscribe()
             resolve(user)
           })
         })
         
         if (!user) {
-          navigate('/signup')
+          console.log('No authenticated user, redirecting to login')
+          navigate('/login')
           return
         }
+
+        console.log('User authenticated:', user.email, 'Email verified:', user.emailVerified)
 
         // Force token refresh to ensure we have a valid token
         const idToken = await user.getIdToken(true)
@@ -113,6 +125,7 @@ const Dashboard: React.FC = () => {
 
         console.log('Making dashboard API call to:', endpoint)
         console.log('Token length:', idToken.length)
+        console.log('Token starts with:', idToken.substring(0, 20))
 
         const response = await fetch(endpoint, {
           method: 'GET',
@@ -122,13 +135,26 @@ const Dashboard: React.FC = () => {
           }
         })
 
+        console.log('Response status:', response.status)
+        console.log('Response ok:', response.ok)
+
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Dashboard API error response:', errorText)
-          throw new Error(`Failed to fetch dashboard data: ${response.status} ${response.statusText}`)
+          
+          // Try to parse error as JSON
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText)
+          } catch {
+            errorData = { error: errorText }
+          }
+          
+          throw new Error(`API Error (${response.status}): ${errorData.error || errorText}`)
         }
 
         const data = await response.json()
+        console.log('Dashboard data received:', Object.keys(data))
         setDashboardData(data)
       } catch (err: any) {
         console.error('Dashboard fetch error:', err)
