@@ -21,6 +21,7 @@ import Cancel from './components/Cancel'
 import Checkout from './pages/Checkout'
 import Verify from './pages/Verify'
 import VerifyEmail from './pages/VerifyEmail'
+import PaymentMode from './pages/PaymentMode'
 import Dashboard from './pages/Dashboard'
 
 const Home: React.FC = () => (
@@ -47,7 +48,8 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/payment-mode" element={<PaymentMode />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           
