@@ -39,7 +39,8 @@ const Testimonials: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-2/3 mb-6 md:mb-0 md:pr-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Real Results</h3>
-              <p className="text-gray-600 mb-4">Our clients see an average credit score increase of 75+ points within the first 90 days of working with us. We've helped hundreds of Phoenix residents qualify for better loans, lower interest rates, and improved financial opportunities.</p>
+              <p className="text-gray-600 mb-4">We are not magicians, and we do not believe in shortcuts. We promise a thorough, legal, and ethical process to dispute negative items on your credit report. Accredited Financial Services treats clients like family with honesty, care, and a personalized strategy.</p>
+              <p className="text-gray-600 mb-4">Focusing on accuracy and persistence, we help our clients move closer to qualifying for better loans, lower interest rates, and stronger financial opportunities.</p>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-3xl font-bold text-blue-700">75+</div>
