@@ -59,14 +59,14 @@ const Checkout: React.FC = () => {
         // Force a refreshed ID token so server sees updated emailVerified claim
         const idToken = await freshUser.getIdToken(true);
         
-        // API endpoint configuration
-        // Local dev: uses proxy to localhost
-        // Production: calls Vercel API directly
+        // API endpoint configuration - use custom domain directly for production
         const isDev = import.meta.env.DEV;
         const apiBase = isDev 
           ? '' // Use relative URL for proxy in dev
-          : 'https://accreditedfs.vercel.app'; // Direct Vercel API in production
+          : 'https://api.accreditedfs.com'; // Use stable custom domain
         const endpoint = `${apiBase}/api/create-checkout-session`;
+        
+        console.log('API endpoint:', endpoint); // Debug log
 
         const body: Record<string, any> = {};
         if (plan) body.plan = plan;

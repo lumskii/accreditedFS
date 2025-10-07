@@ -24,6 +24,7 @@ export default async function handler(req, res) {
     'https://accreditedfs.com',
     'https://www.accreditedfs.com',
     'https://accreditedfs.web.app',
+    'https://api.accreditedfs.com',
     'https://accreditedfs.vercel.app',
     'http://localhost:3000',
     'http://localhost:4000',
