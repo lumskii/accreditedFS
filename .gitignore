@@ -48,5 +48,8 @@ coverage/
 .cache/
 /.pnp/
 *.pem
+
+# Backup files containing sensitive data
+*.backup
 node_modules
 .vercel
