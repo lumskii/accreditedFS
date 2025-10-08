@@ -1,21 +1,41 @@
-import React, { useState, useEffect } from 'react'
-import { Menu, X } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Menu, X, User, ChevronDown } from 'lucide-react'
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Check authentication state
+  // Check authentication state and admin role
   useEffect(() => {
     const checkAuthState = async () => {
       try {
         const { getAuth, onAuthStateChanged } = await import('firebase/auth')
+        const { ref, get } = await import('firebase/database')
+        const { database } = await import('../firebase')
         const app = (await import('../firebase')).default
         const auth = getAuth(app)
         
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          setIsLoggedIn(!!user)
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            setIsLoggedIn(true)
+            
+            // Check if user is admin
+            try {
+              const adminRef = ref(database, `users/${user.uid}/roles/admin`)
+              const adminSnap = await get(adminRef)
+              setIsAdmin(adminSnap.exists() && adminSnap.val())
+            } catch (error) {
+              console.warn('Admin check failed:', error)
+              setIsAdmin(false)
+            }
+          } else {
+            setIsLoggedIn(false)
+            setIsAdmin(false)
+          }
           setIsLoading(false)
         })
 
@@ -27,6 +47,20 @@ const Navbar: React.FC = () => {
     }
 
     checkAuthState()
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   // lightweight auth-aware logout (we'll import auth lazily to avoid adding firebase to main bundle)
@@ -59,20 +93,62 @@ const Navbar: React.FC = () => {
             {/* Admin link removed for public navigation */}
             <a href="#about" className="text-gray-700 hover:text-blue-800 transition-colors">About</a>
             <a href="#booking" className="bg-[#f0d541] text-blue-800 px-4 py-2 rounded-md hover:bg-[#e6cb3d] transition-colors font-medium">Book Consultation</a>
+            
+            {/* User Dropdown */}
             {!isLoading && (
-              <>
-                {isLoggedIn ? (
-                  <>
-                    <a href="/dashboard" className="text-blue-800 hover:text-blue-900 font-medium transition-colors">Dashboard</a>
-                    <button onClick={handleLogout} className="bg-transparent text-sm text-gray-700 hover:text-blue-800 transition-colors">Logout</button>
-                  </>
-                ) : (
-                  <>
-                    <a href="/login" className="text-gray-700 hover:text-blue-800 transition-colors">Login</a>
-                    <a href="/signup" className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900 transition-colors font-medium">Sign Up</a>
-                  </>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center space-x-1 text-gray-700 hover:text-blue-800 transition-colors p-2 rounded-md hover:bg-gray-50"
+                >
+                  <User size={20} />
+                  <ChevronDown size={16} />
+                </button>
+                
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    {isLoggedIn ? (
+                      <>
+                        {!isAdmin && (
+                          <a 
+                            href="/dashboard" 
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setUserDropdownOpen(false)}
+                          >
+                            Dashboard
+                          </a>
+                        )}
+                        <button 
+                          onClick={() => {
+                            setUserDropdownOpen(false)
+                            handleLogout()
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <a 
+                          href="/login" 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setUserDropdownOpen(false)}
+                        >
+                          Login
+                        </a>
+                        <a 
+                          href="/signup" 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setUserDropdownOpen(false)}
+                        >
+                          Sign Up
+                        </a>
+                      </>
+                    )}
+                  </div>
                 )}
-              </>
+              </div>
             )}
           </div>
           <div className="md:hidden flex items-center">
@@ -92,11 +168,15 @@ const Navbar: React.FC = () => {
             {/* Admin link removed for public navigation */}
             <a href="#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>About</a>
             <a href="#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Book Consultation</a>
+            
+            {/* Mobile Auth Options */}
             {!isLoading && (
               <>
                 {isLoggedIn ? (
                   <>
-                    <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
+                    {!isAdmin && (
+                      <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
+                    )}
                     <button 
                       onClick={() => {
                         setIsMenuOpen(false)
