@@ -87,27 +87,43 @@ const Agreement: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
+      // Save agreement to database
       await set(ref(database, `users/${user.uid}/agreement`), {
         agreed: true,
         signedBy: signName || user.displayName || user.email,
         signedAt: Date.now(),
       });
+      
+      console.log('Agreement saved successfully');
+      
+      // Add a small delay to ensure database write is propagated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // read saved flow (plan/mode) and pass as query params to checkout
       try {
         const flowSnap = await get(ref(database, `users/${user.uid}/flow`));
         const flowVal = flowSnap.exists() ? flowSnap.val() : {};
+        console.log('Flow data:', flowVal);
+        
         const planParam = flowVal.plan
           ? `?plan=${encodeURIComponent(flowVal.plan)}`
           : "";
         const modeParam = flowVal.mode
           ? `${planParam ? "&" : "?"}mode=${encodeURIComponent(flowVal.mode)}`
           : "";
-        navigate(`/checkout${planParam}${modeParam}`);
+        
+        const checkoutUrl = `/checkout${planParam}${modeParam}`;
+        console.log('Navigating to:', checkoutUrl);
+        
+        // Use replace navigation to avoid back button issues
+        navigate(checkoutUrl, { replace: true });
       } catch (e) {
+        console.error('Error reading flow data:', e);
         // fallback to plain checkout if RTDB read fails
-        navigate("/checkout");
+        navigate("/checkout", { replace: true });
       }
     } catch (err: any) {
+      console.error('Error saving agreement:', err);
       setError(err.message || "Failed to save agreement");
     } finally {
       setLoading(false);

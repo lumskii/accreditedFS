@@ -56,16 +56,16 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Firebase config - replace with your actual config
+        // Load Firebase config from environment variables (same as React app)
         const firebaseConfig = {
-            apiKey: "AIzaSyBqowhuOkEhO5PIR8NkgI_4QgWfN7-_7F0",
-            authDomain: "accreditedfs.firebaseapp.com",
-            databaseURL: "https://accreditedfs-default-rtdb.firebaseio.com",
-            projectId: "accreditedfs",
-            storageBucket: "accreditedfs.firebasestorage.app",
-            messagingSenderId: "372459430096",
-            appId: "1:372459430096:web:17e6fcdae74df87c63b949",
-            measurementId: "G-8CXWKS7E31"
+            apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyBqowhuOkEhO5PIR8NkgI_4QgWfN7-_7F0",
+            authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "accreditedfs.firebaseapp.com",
+            databaseURL: import.meta.env?.VITE_FIREBASE_DATABASE_URL || "https://accreditedfs-default-rtdb.firebaseio.com",
+            projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "accreditedfs",
+            storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "accreditedfs.firebasestorage.app",
+            messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "372459430096",
+            appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:372459430096:web:17e6fcdae74df87c63b949",
+            measurementId: import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID || "G-8CXWKS7E31"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -85,7 +85,7 @@
                 showResult('Processing...', 'info');
                 
                 // Call our API to set admin role
-                const response = await fetch('https://api.accreditedfs.com/api/set-admin', {
+                const response = await fetch('https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app/api/set-admin', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

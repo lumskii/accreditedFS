@@ -49,12 +49,19 @@ const Checkout: React.FC = () => {
       }
 
       try {
+        console.log('Checking agreement for user:', user.uid);
         const agrSnap = await get(ref(database, `users/${user.uid}/agreement`));
+        console.log('Agreement snapshot exists:', agrSnap.exists());
+        console.log('Agreement data:', agrSnap.exists() ? agrSnap.val() : null);
+        
         if (!agrSnap.exists() || !agrSnap.val().agreed) {
+          console.log('Agreement not found or not agreed, redirecting to agreement page');
           setError("You must sign the agreement before proceeding to payment.");
           setLoading(false);
           return;
         }
+        
+        console.log('Agreement verified, proceeding to checkout...');
 
         // Force a refreshed ID token so server sees updated emailVerified claim
         const idToken = await freshUser.getIdToken(true);

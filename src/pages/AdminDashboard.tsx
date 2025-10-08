@@ -108,14 +108,35 @@ const AdminDashboard: React.FC = () => {
       // Get auth token
       const token = await user.getIdToken()
       
+      // API endpoint configuration - use environment variable or fallback
+      const isDev = import.meta.env.DEV;
+      const apiBase = import.meta.env.VITE_API_BASE || 
+        (isDev 
+          ? '' // Use relative URL for proxy in dev
+          : 'https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app'); // Use latest working deployment
+      
+      // Add cache busting timestamp
+      const timestamp = Date.now();
+      const endpoint = `${apiBase}/api/admin-users?t=${timestamp}`;
+      
+      console.log('Admin API endpoint:', endpoint);
+      console.log('Request headers:', {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      });
+      
       // Fetch users data from admin API
-      const response = await fetch('/api/admin-users', {
+      const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include' // Include credentials for CORS
       })
+
+      console.log('Response status:', response.status);
+      console.log('Response headers access-control-allow-origin:', response.headers.get('access-control-allow-origin'));
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -200,7 +221,7 @@ const AdminDashboard: React.FC = () => {
         itemsRemoved: parseInt(progressForm.itemsRemoved) || 0
       }
       
-      const apiBase = import.meta.env.VITE_API_BASE || "https://api.accreditedfs.com"
+      const apiBase = import.meta.env.VITE_API_BASE || "https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app"
       const response = await fetch(`${apiBase}/api/update-progress`, {
         method: 'POST',
         headers: {

@@ -14,6 +14,7 @@ import Footer from './components/Footer'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
+import AdminSetup from './pages/AdminSetup'
 import AdminDashboard from './pages/AdminDashboard'
 import Agreement from './pages/Agreement'
 import Success from './components/Success'
@@ -55,6 +56,7 @@ export function App() {
           
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/setup" element={<AdminSetup />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           
           <Route 
@@ -68,7 +70,7 @@ export function App() {
           <Route 
             path="/checkout" 
             element={
-              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={false}>
                 <Checkout />
               </ProtectedRoute>
             } 
