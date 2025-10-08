@@ -19,7 +19,7 @@ const AdminSetup: React.FC = () => {
       showResult('Processing...', 'info');
       
       // Use environment variable for API base URL
-      const apiBase = import.meta.env.VITE_API_BASE || 'https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app';
+      const apiBase = import.meta.env.VITE_API_BASE || 'https://accredited-hb1xpqq7c-mikes-projects-eb8d5010.vercel.app';
       const response = await fetch(`${apiBase}/api/set-admin`, {
         method: 'POST',
         headers: {

@@ -113,7 +113,7 @@ const AdminDashboard: React.FC = () => {
       const apiBase = import.meta.env.VITE_API_BASE || 
         (isDev 
           ? '' // Use relative URL for proxy in dev
-          : 'https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app'); // Use latest working deployment
+          : 'https://accredited-hb1xpqq7c-mikes-projects-eb8d5010.vercel.app'); // Use latest working deployment
       
       // Add cache busting timestamp
       const timestamp = Date.now();

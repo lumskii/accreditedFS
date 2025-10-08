@@ -84,13 +84,32 @@ export default async function handler(req, res) {
     // Process each user and get their auth data
     for (const [uid, userData] of Object.entries(usersData)) {
       try {
+        // Skip users who have admin roles - they shouldn't appear in the user list
+        if (userData.roles && userData.roles.admin) {
+          console.log(`Skipping admin user: ${uid}`);
+          continue;
+        }
+
         // Get user record from Firebase Auth
         const userRecord = await admin.auth().getUser(uid);
         
         // Combine database profile data with auth data
         const profile = userData.profile || {};
         const progress = userData.progress || {};
-        const currentPlan = userData.currentPlan || null;
+        const flow = userData.flow || {};
+        
+        // Extract plan information from flow object or fallback to currentPlan
+        let currentPlan = null;
+        if (flow.plan) {
+          currentPlan = {
+            name: flow.plan,
+            mode: flow.mode || 'unknown',
+            signupAt: flow.signupAt || null,
+            status: 'active' // Assume active if they have flow data
+          };
+        } else if (userData.currentPlan) {
+          currentPlan = userData.currentPlan;
+        }
         
         const user = {
           uid,
@@ -102,6 +121,9 @@ export default async function handler(req, res) {
           currentPlan,
           progress: {
             creditScore: progress.creditScore || null,
+            disputesSubmitted: progress.disputesSubmitted || 0,
+            disputesResolved: progress.disputesResolved || 0, 
+            itemsRemoved: progress.itemsRemoved || 0,
             disputesCompleted: progress.disputesCompleted || 0,
             milestones: progress.milestones || {}
           },
@@ -117,9 +139,29 @@ export default async function handler(req, res) {
       } catch (authError) {
         console.warn(`Could not get auth data for user ${uid}:`, authError.message);
         
+        // Skip users who have admin roles even in fallback
+        if (userData.roles && userData.roles.admin) {
+          console.log(`Skipping admin user in fallback: ${uid}`);
+          continue;
+        }
+        
         // If we can't get auth data, use database data as fallback
         const profile = userData.profile || {};
         const progress = userData.progress || {};
+        const flow = userData.flow || {};
+        
+        // Extract plan information from flow object or fallback to currentPlan
+        let currentPlan = null;
+        if (flow.plan) {
+          currentPlan = {
+            name: flow.plan,
+            mode: flow.mode || 'unknown',
+            signupAt: flow.signupAt || null,
+            status: 'active' // Assume active if they have flow data
+          };
+        } else if (userData.currentPlan) {
+          currentPlan = userData.currentPlan;
+        }
         
         usersList.push({
           uid,
@@ -128,9 +170,12 @@ export default async function handler(req, res) {
           emailVerified: false, // Default to false if we can't verify
           joinDate: profile.createdAt ? new Date(profile.createdAt).toISOString() : new Date().toISOString(),
           lastSignIn: null,
-          currentPlan: userData.currentPlan || null,
+          currentPlan,
           progress: {
             creditScore: progress.creditScore || null,
+            disputesSubmitted: progress.disputesSubmitted || 0,
+            disputesResolved: progress.disputesResolved || 0, 
+            itemsRemoved: progress.itemsRemoved || 0,
             disputesCompleted: progress.disputesCompleted || 0,
             milestones: progress.milestones || {}
           },
