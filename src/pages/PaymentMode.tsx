@@ -16,6 +16,33 @@ const PaymentMode: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Plan pricing information
+  const planPricing: Record<string, { full: number; monthlyTotal: number; setupFee: number; monthlyAmount: number; months: number }> = {
+    'credit-refresh': {
+      full: 800,
+      monthlyTotal: 1300,
+      setupFee: 200,
+      monthlyAmount: 123,
+      months: 9
+    },
+    'credit-rebuild': {
+      full: 1200,
+      monthlyTotal: 1700,
+      setupFee: 300,
+      monthlyAmount: 156,
+      months: 9
+    },
+    'couples-advantage': {
+      full: 2000,
+      monthlyTotal: 2500,
+      setupFee: 450,
+      monthlyAmount: 228,
+      months: 9
+    }
+  }
+
+  const currentPlan = planPricing[plan] || null
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
@@ -132,9 +159,14 @@ const PaymentMode: React.FC = () => {
                   onChange={(e) => setMode(e.target.value)}
                   className="mt-1 mr-3"
                 />
-                <div>
+                <div className="flex-1">
                   <div className="font-medium text-gray-900">Pay in Full</div>
-                  <div className="text-sm text-gray-600">One-time payment with potential discount</div>
+                  <div className="text-sm text-gray-600">One-time payment with discounted price</div>
+                  {currentPlan && (
+                    <div className="text-lg font-bold text-green-600 mt-1">
+                      ${currentPlan.full.toLocaleString()}
+                    </div>
+                  )}
                 </div>
               </label>
 
@@ -147,9 +179,19 @@ const PaymentMode: React.FC = () => {
                   onChange={(e) => setMode(e.target.value)}
                   className="mt-1 mr-3"
                 />
-                <div>
+                <div className="flex-1">
                   <div className="font-medium text-gray-900">Monthly Payments</div>
                   <div className="text-sm text-gray-600">Spread the cost over monthly installments</div>
+                  {currentPlan && (
+                    <div className="mt-1">
+                      <div className="text-sm text-gray-700">
+                        ${currentPlan.setupFee} Setup Fee + ${currentPlan.monthlyAmount}/month for {currentPlan.months} months
+                      </div>
+                      <div className="text-lg font-bold text-blue-600">
+                        Total: ${currentPlan.monthlyTotal.toLocaleString()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </label>
             </div>

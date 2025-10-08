@@ -80,13 +80,13 @@ const PricingSection: React.FC = () => {
     {
       id: 1,
       name: "Credit Refresh",
-      price: "1,100",
-      originalPrice: "2,100",
+      price: "800",
+      originalPrice: "1,300",
       description:
         "Perfect for clients who need a quick win and focused cleanup to move closer to approvals. This entry-level package targets the most harmful inaccuracies on your report — without the extras — giving you the foundation to move forward toward your financial goals.",
       features: [
         "Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.",
-        "Or $300 down + $200/mo for 9 months (total $2,100)",
+        "Or $200 Setup Fee + $123/mo for 9 months (total $1,300)",
         "Backed by our 90-Day Money-Back Guarantee",
       ],
       expandedFeatures: [
@@ -102,13 +102,13 @@ const PricingSection: React.FC = () => {
     {
       id: 2,
       name: "Credit Rebuild",
-      price: "2,000",
-      originalPrice: "3,200",
+      price: "1,200",
+      originalPrice: "1,700",
       description:
         "This is the full reset — designed for clients ready to completely restore their credit and aim for the 700+ club. You’ll receive personalized support, monthly progress reviews, and hands-on guidance to keep your credit moving forward.",
       features: [
         "Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.",
-        "Or $500 down + $300/mo for 9 months (total $3,200)",
+        "Or $300 Setup Fee + $156/mo for 9 months (total $1,700)",
         "Backed by our 90-Day Money-Back Guarantee",
       ],
       expandedFeatures: [
@@ -126,13 +126,13 @@ const PricingSection: React.FC = () => {
     {
       id: 3,
       name: "Couples Advantage",
-      price: "3,200",
-      originalPrice: "4,300",
+      price: "2,000",
+      originalPrice: "2,500",
       description:
         "Designed for couples or partners who are serious about building — or rebuilding — their credit together. This plan includes the full benefits of our premium credit repair program, doubled for both partners, along with personalized guidance to ensure each of you is supported on your financial journey.",
       features: [
         "Choose Pay-in-Full and unlock Priority Rush Processing — the fastest path to results.",
-        "Or $700 down + $400/mo for 9 months (total $4,300)",
+        "Or $450 Setup Fee + $228/mo for 9 months (total $2,500)",
         "Backed by our 90-Day Money-Back Guarantee",
       ],
       expandedFeatures: [
@@ -310,19 +310,19 @@ const PriceCard: React.FC<{
     { full: string; monthlyDeposit: string; monthlySummary: string }
   > = {
     "credit-refresh": {
-      full: "$1,100",
-      monthlyDeposit: "$300",
-      monthlySummary: "$200/mo",
+      full: "$800",
+      monthlyDeposit: "$200",
+      monthlySummary: "$123/mo",
     },
     "credit-rebuild": {
-      full: "$2,000",
-      monthlyDeposit: "$500",
-      monthlySummary: "$300/mo",
+      full: "$1,200",
+      monthlyDeposit: "$300",
+      monthlySummary: "$156/mo",
     },
     "couples-advantage": {
-      full: "$3,200",
-      monthlyDeposit: "$700",
-      monthlySummary: "$400/mo",
+      full: "$2,000",
+      monthlyDeposit: "$450",
+      monthlySummary: "$228/mo",
     },
   };
   const opts = priceOptions[planSlug] || {
