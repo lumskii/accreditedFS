@@ -141,14 +141,6 @@ const Navbar: React.FC = () => {
                 )}
               </div>
             )}
-
-            {/* Login/Signup buttons for users without plans */}
-            {!isLoading && (!isLoggedIn || !hasPlan) && (
-              <div className="flex items-center space-x-4">
-                <a href="/login" className="text-gray-700 hover:text-blue-800 transition-colors">Login</a>
-                <a href="/signup" className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900 transition-colors font-medium">Sign Up</a>
-              </div>
-            )}
           </div>
           <div className="md:hidden flex items-center">
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-700">
@@ -168,7 +160,7 @@ const Navbar: React.FC = () => {
             <a href="#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>About</a>
             <a href="#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Book Consultation</a>
             
-            {/* Mobile Auth Options - Only show for logged in users with plans */}
+            {/* Mobile User Options - Only show for logged in users with plans */}
             {!isLoading && isLoggedIn && hasPlan && (
               <>
                 {!isAdmin && (
@@ -183,14 +175,6 @@ const Navbar: React.FC = () => {
                 >
                   Logout
                 </button>
-              </>
-            )}
-
-            {/* Mobile Login/Signup for users without plans */}
-            {!isLoading && (!isLoggedIn || !hasPlan) && (
-              <>
-                <a href="/login" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Login</a>
-                <a href="/signup" className="block px-3 py-2 bg-blue-800 text-white font-medium rounded-md hover:bg-blue-900" onClick={() => setIsMenuOpen(false)}>Sign Up</a>
               </>
             )}
           </div>
