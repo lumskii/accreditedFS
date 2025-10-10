@@ -1,43 +1,143 @@
-# Accredited Financial Services — UI Skeleton
+# 🏦 Accredited Financial Services
 
-This repo contains a Vite + React + TypeScript skeleton implementing the components you supplied, updated for modern React/TypeScript usage and Tailwind CSS.
+**Professional Credit Repair Services Platform for Arizona Residents**
 
-Quick start
+A comprehensive web application built with modern technologies to provide credit repair services, client management, and business operations for Accredited Financial Services.
 
-1. Install dependencies
+## 🌐 Live Demo
 
-```bash
-npm install
-# Accredited Financial Services — UI Skeleton
+**Production Site**: [https://accreditedfs.web.app](https://accreditedfs.web.app)  
+**Custom Domain**: [https://accreditedfs.com](https://accreditedfs.com)
 
-This repository contains a Vite + React + TypeScript frontend skeleton built with Tailwind CSS and modular components.
+---
 
-Quick start
+## 🚀 Technology Stack
 
-1) Install dependencies
+### **Frontend Framework**
+- **React 18** with TypeScript for component-based UI development
+- **Vite** as build tool and development server for fast builds and HMR
+- **React Router DOM** for client-side routing and navigation
+- **Tailwind CSS** for utility-first styling and responsive design
 
-```bash
-npm install
+### **Backend & Database**
+- **Firebase Realtime Database** for user data, plans, and disputes
+- **Firebase Authentication** for secure user registration and login
+- **Firebase Hosting** for fast, global CDN deployment
+- **Vercel Serverless Functions** for payment processing and webhooks
+
+### **Payment Processing**
+- **Stripe Integration** for secure payment processing
+- **Stripe Checkout** for subscription management
+- **Webhook handling** for payment confirmations and plan updates
+
+### **UI Components & Icons**
+- **Lucide React** for modern, customizable icons
+- **Custom Components** for consistent design system
+- **Responsive Design** optimized for mobile, tablet, and desktop
+
+### **Email & Communication**
+- **EmailJS** for contact forms and client communication
+- **Automated email responses** for booking confirmations
+
+### **Development Tools**
+- **TypeScript** for type safety and better developer experience
+- **ESLint & Prettier** for code quality and formatting
+- **Git** for version control with GitHub integration
+
+---
+
+## 🏗️ Architecture & Features
+
+### **Client-Side Application**
+```
+src/
+├── components/          # Reusable UI components
+│   ├── Hero.tsx        # Landing section with CTA
+│   ├── Services.tsx    # Service offerings display
+│   ├── PricingSection.tsx # Subscription plans
+│   ├── Navbar.tsx      # Navigation with authentication
+│   ├── Footer.tsx      # Contact information
+│   ├── BookingCTA.tsx  # Consultation booking form
+│   └── ...
+├── pages/              # Route components
+│   ├── Dashboard.tsx   # Client portal
+│   ├── AdminDashboard.tsx # Admin management
+│   ├── Login.tsx       # Authentication
+│   └── ...
+├── firebase.ts         # Firebase configuration
+└── App.tsx            # Main application component
 ```
 
-2) Start dev server
+### **Key Features Implemented**
 
-```bash
-npm run dev
-```
+#### **🎯 Business Features**
+- **Service Showcase** - Professional credit repair services display
+- **Pricing Plans** - Three-tier subscription model (Credit Refresh, Credit Rebuild, Couples Advantage)
+- **Consultation Booking** - Integrated scheduling system with EmailJS
+- **Client Portal** - Secure dashboard for registered users
+- **Admin Panel** - Administrative tools for dispute management
 
-Development notes
-- Tailwind: configured in `tailwind.config.js` and imported in `src/index.css`.
-- Icons: `lucide-react`.
-- Source files: `src/` and `src/components/`.
+#### **🔐 Authentication & Security**
+- **Firebase Authentication** - Secure user registration and login
+- **Email Verification** - Required before dashboard access
+- **Role-Based Access** - Admin and client user roles
+- **Protected Routes** - Authentication-required pages
+- **Plan-Based Access** - Features locked behind subscription plans
 
-Firebase integration (local setup)
+#### **💳 Payment Integration**
+- **Stripe Checkout** - Secure payment processing
+- **Subscription Management** - Recurring billing support
+- **Webhook Integration** - Real-time payment confirmations
+- **Plan Activation** - Automatic feature unlocking after payment
 
-1. Create a Firebase project at https://console.firebase.google.com/ and enable Hosting, Realtime Database, and Analytics.
-2. Add a web app and copy the Firebase config values.
-3. Create a `.env.local` file in the project root with the following (example):
+#### **📱 User Experience**
+- **Responsive Design** - Mobile-first approach
+- **Smooth Scrolling** - Enhanced navigation experience
+- **Loading States** - User feedback during async operations
+- **Form Validation** - Client-side and server-side validation
+- **Error Handling** - Comprehensive error management
+
+---
+
+## 🎨 SEO & Performance Optimizations
+
+### **Search Engine Optimization**
+- **Comprehensive Meta Tags** - Title, description, keywords optimized for Arizona credit repair
+- **Open Graph Integration** - Social media sharing optimization
+- **Structured Data (JSON-LD)** - LocalBusiness schema for better search visibility
+- **XML Sitemap** - Complete site structure mapping for search engines
+- **Robots.txt** - Search engine crawling directives
+- **Canonical URLs** - Duplicate content prevention
+
+### **Performance Enhancements**
+- **Image Optimization** - Lazy loading, proper sizing, and modern formats
+- **Code Splitting** - Dynamic imports and vendor chunking for faster loads
+- **Resource Preloading** - Critical assets preloaded for better performance
+- **Build Optimization** - Terser minification and tree shaking
+- **Bundle Analysis** - Optimized chunk sizes for better caching
+
+### **Accessibility Features**
+- **WCAG Compliance** - Web Content Accessibility Guidelines adherence
+- **Keyboard Navigation** - Full keyboard accessibility support
+- **Screen Reader Support** - ARIA labels and semantic HTML
+- **Focus Management** - Visible focus indicators and skip links
+- **Reduced Motion** - Respects user preferences for animations
+
+---
+
+## 🛠️ Development Setup
+
+### **Prerequisites**
+- Node.js 18+ and npm
+- Firebase account with project setup
+- Stripe account for payment processing
+- EmailJS account for contact forms
+
+### **Environment Variables**
+Create a `.env.local` file with the following configuration:
 
 ```env
+# Firebase Configuration
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
@@ -46,49 +146,170 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXX
 VITE_FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+
+# Stripe Configuration
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
+
+# EmailJS Configuration
+VITE_EMAILJS_SERVICE_ID=your_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_template_id
+VITE_EMAILJS_TEMPLATE_ID_REPLY=your_reply_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
+VITE_BOOKING_RECIPIENT=info@accreditedfs.com
+
+# API Configuration
+VITE_API_PROXY_TARGET=https://accreditedfs.vercel.app
 ```
 
-4. The project includes a small `src/firebase.ts` helper (if you add it) to initialize the modular Firebase SDK using those env vars. Keep `.env.local` out of Git (it is in `.gitignore`).
-
-Realtime Database usage
-- Use the modular `firebase/database` functions in `src/firebase.ts`.
-- Example: read/writes wrapped in small helper functions exported from `src/firebase.ts`.
-
-Publishing (Firebase Hosting)
-
-1. Install the Firebase CLI:
+### **Installation & Development**
 
 ```bash
-npm install -g firebase-tools
-```
+# Clone the repository
+git clone https://github.com/lumskii/accreditedFS.git
+cd accreditedFS
 
-2. Login and init:
+# Install dependencies
+npm install
 
-```bash
-firebase login
-firebase init hosting
-```
+# Start development server
+npm run dev
 
-Choose the site you created and set the public directory to `dist` (the Vite build output). When asked to configure as a single-page app, answer `yes`.
-
-3. Build and deploy
-
-```bash
+# Build for production
 npm run build
+
+# Deploy to Firebase Hosting
 firebase deploy --only hosting
 ```
 
-Environment & security
-- Use Vite env vars prefixed with `VITE_` for client-side values. Keep any server-only secrets (API keys with privileged access) in a secure server or Cloud Functions, not in client code.
+---
 
-Development workflow suggestions
-- Keep components small and testable.
-- Add unit tests with Vitest or React Testing Library.
-- Add E2E tests with Playwright or Cypress for critical flows.
+## 🚀 Deployment Pipeline
 
-If you'd like, I can:
-- Add `src/firebase.ts` implementing initialization + simple helpers for Realtime Database and Analytics.
-- Install `firebase` into `package.json` and run `npm install`.
-- Add a demo write/read to the Realtime DB behind a simple UI in the app.
+### **Firebase Hosting**
+- **Automatic builds** via Vite production optimization
+- **Global CDN** for fast worldwide content delivery
+- **SSL certificates** automatically managed
+- **Custom domain** support with proper redirects
 
-Tell me which of the above you'd like me to do next and I'll implement it.
+### **Domain Configuration**
+- **Primary Domain**: accreditedfs.com
+- **Firebase Domain**: accreditedfs.web.app
+- **Redirect Rules**: www to non-www redirect configured
+- **SSL/TLS**: Automatic HTTPS enforcement
+
+---
+
+## 📊 Business Logic & Data Flow
+
+### **User Journey**
+1. **Landing Page** - Arizona-focused credit repair services showcase
+2. **Service Selection** - Three-tier pricing with detailed feature comparison
+3. **Registration** - Email-based account creation with verification
+4. **Plan Purchase** - Stripe Checkout integration with webhook confirmation
+5. **Dashboard Access** - Client portal with dispute tracking and resources
+6. **Admin Management** - Backend administrative tools for client support
+
+### **Database Structure**
+```
+Firebase Realtime Database:
+├── users/
+│   ├── {userId}/
+│   │   ├── profile/          # User information
+│   │   ├── flow/            # Payment and plan status
+│   │   ├── agreement/       # Terms acceptance
+│   │   ├── disputes/        # Credit repair cases
+│   │   └── roles/           # Admin permissions
+└── disputes/               # Global dispute tracking
+```
+
+---
+
+## 🎯 Recent Implementations
+
+### **Performance & Accessibility Improvements (Latest)**
+- **Lighthouse Score Optimization** - Performance and accessibility enhancements
+- **Image Loading Optimization** - Lazy loading and proper sizing attributes
+- **Focus Management** - Enhanced keyboard navigation and screen reader support
+- **Build Process Optimization** - Terser minification and vendor chunking
+
+### **Navigation Enhancement**
+- **Scroll Offset Fix** - Proper positioning when clicking navigation links
+- **Smooth Scrolling** - Enhanced user experience with CSS scroll behavior
+- **Mobile Menu** - Improved accessibility with ARIA attributes
+
+### **SEO Overhaul**
+- **Arizona-Specific Optimization** - Local SEO for Arizona credit repair services
+- **Technical SEO** - Complete meta tags, structured data, and sitemap implementation
+- **Content Optimization** - Keyword-rich content throughout all sections
+
+---
+
+## 🔧 Build Configuration
+
+### **Vite Configuration**
+```typescript
+// vite.config.ts highlights
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor.firebase': ['firebase'],
+          'vendor.react': ['react', 'react-dom'],
+          'vendor.stripe': ['stripe'],
+          // ... optimized chunking strategy
+        }
+      }
+    },
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+  },
+})
+```
+
+### **Tailwind Configuration**
+- **Custom color palette** matching brand identity
+- **Responsive breakpoints** for optimal device support
+- **Component utilities** for consistent styling
+
+---
+
+## 📈 Business Impact
+
+### **SEO Performance**
+- **Target Keywords**: "Arizona credit repair", "credit repair services", "improve credit score"
+- **Local SEO**: Phoenix, Tucson, Mesa, and Arizona statewide targeting
+- **Structured Data**: LocalBusiness schema for enhanced search visibility
+
+### **User Experience Metrics**
+- **Mobile Responsive**: Optimized for 320px to 1920px+ screens
+- **Performance**: Lighthouse scores optimized for 90+ in all categories
+- **Accessibility**: WCAG 2.1 AA compliance for inclusive user experience
+
+### **Conversion Optimization**
+- **Clear CTAs**: Strategically placed consultation booking buttons
+- **Trust Signals**: 90-day money-back guarantee prominently displayed
+- **Social Proof**: Client testimonials and success stories
+
+---
+
+## 🤝 Contributing
+
+This is a production business website. For inquiries about the codebase or business services, contact:
+
+**Email**: info@accreditedfs.com  
+**Website**: [https://accreditedfs.com](https://accreditedfs.com)
+
+---
+
+## 📄 License
+
+© 2025 Accredited Financial Services. All rights reserved.
+
+This project contains proprietary business code and assets. Unauthorized reproduction or distribution is prohibited.
