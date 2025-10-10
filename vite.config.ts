@@ -18,6 +18,10 @@ export default defineConfig(async () => {
     },
     plugins: [pluginReact()],
     build: {
+      // Enable source maps for better debugging but keep them separate
+      sourcemap: false,
+      // Optimize chunk size
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
           manualChunks(id: string) {
@@ -28,11 +32,25 @@ export default defineConfig(async () => {
               if (id.includes('dompurify')) return 'vendor.dompurify'
               if (id.includes('@emailjs')) return 'vendor.emailjs'
               if (id.includes('stripe')) return 'vendor.stripe'
+              if (id.includes('react') || id.includes('react-dom')) return 'vendor.react'
+              if (id.includes('lucide-react')) return 'vendor.icons'
               return 'vendor'
             }
           }
         }
-      }
-    }
+      },
+      // Enable minification
+      minify: 'terser' as const,
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-router-dom', 'lucide-react'],
+    },
   }
 })

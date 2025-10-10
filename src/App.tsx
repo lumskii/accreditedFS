@@ -26,8 +26,13 @@ import PaymentMode from './pages/PaymentMode'
 import Dashboard from './pages/Dashboard'
 
 const Home: React.FC = () => (
-  <main className="flex-grow">
-    <Suspense fallback={<div className="py-12">Loading…</div>}>
+  <main className="flex-grow" id="main-content">
+    <Suspense fallback={
+      <div className="py-12 flex items-center justify-center" role="status" aria-label="Loading content">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
+        <span className="sr-only">Loading...</span>
+      </div>
+    }>
       <Hero />
       <Services />
       <PricingSection />
@@ -44,6 +49,14 @@ export function App() {
   return (
     <BrowserRouter>
       <div className="flex flex-col min-h-screen w-full bg-white">
+        {/* Skip Navigation Link */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 bg-blue-800 text-white p-2 rounded-br-md z-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        >
+          Skip to main content
+        </a>
+        
         <Navbar />
 
         <Routes>

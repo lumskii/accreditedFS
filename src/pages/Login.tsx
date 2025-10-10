@@ -181,7 +181,15 @@ const Login: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img src="/assets/afs-min.png" alt="Accredited Financial Services" className="h-16 w-auto" />
+          <img 
+            src="/assets/afs-min.png" 
+            alt="Accredited Financial Services" 
+            className="h-16 w-auto" 
+            loading="eager"
+            decoding="async"
+            width="64"
+            height="64"
+          />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           {isLogin ? 'Welcome back' : 'Create your account'}

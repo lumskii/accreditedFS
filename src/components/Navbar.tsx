@@ -94,7 +94,15 @@ const Navbar: React.FC = () => {
   <div className="flex justify-between h-20 items-center">
           <div className="flex items-center">
             <a href="/" className="flex items-center">
-              <img src="/assets/afs-min.png" alt="Accredited Financial Services - Arizona Credit Repair Company Logo" className="h-28 md:h-36 lg:h-44 xl:h-52 w-auto mr-4 object-contain" />
+              <img 
+                src="/assets/afs-min.png" 
+                alt="Accredited Financial Services - Arizona Credit Repair Company Logo" 
+                className="h-28 md:h-36 lg:h-44 xl:h-52 w-auto mr-4 object-contain" 
+                loading="eager"
+                decoding="async"
+                width="200"
+                height="208"
+              />
             </a>
           </div>
           <div className="hidden md:flex items-center space-x-8">
@@ -143,22 +151,28 @@ const Navbar: React.FC = () => {
             )}
           </div>
           <div className="md:hidden flex items-center">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-700">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="text-gray-700 p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label="Toggle navigation menu"
+            >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
       {isMenuOpen && (
-        <div className="md:hidden bg-white shadow-lg rounded-b-md">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="/#services" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Services</a>
-            <a href="/#pricing" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Pricing</a>
-            <a href="/#benefits" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Why Choose Us</a>
-            <a href="/#testimonials" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>Success Stories</a>
+        <div className="md:hidden bg-white shadow-lg rounded-b-md" id="mobile-menu">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3" role="menu" aria-orientation="vertical">
+            <a href="/#services" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Services</a>
+            <a href="/#pricing" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Pricing</a>
+            <a href="/#benefits" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Why Choose Us</a>
+            <a href="/#testimonials" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Success Stories</a>
             {/* Admin link removed for public navigation */}
-            <a href="/#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md" onClick={() => setIsMenuOpen(false)}>About</a>
-            <a href="/#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Book Consultation</a>
+            <a href="/#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">About</a>
+            <a href="/#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Book Consultation</a>
             
             {/* Mobile User Options - Only show for logged in users with plans */}
             {!isLoading && isLoggedIn && hasPlan && (

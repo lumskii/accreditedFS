@@ -117,7 +117,15 @@ const AdminLogin: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Shield className="h-12 w-12 text-blue-800" />
             <div>
-              <img src="/assets/afs-min.png" alt="Accredited Financial Services" className="h-16 w-auto" />
+              <img 
+                src="/assets/afs-min.png" 
+                alt="Accredited Financial Services" 
+                className="h-16 w-auto" 
+                loading="eager"
+                decoding="async"
+                width="64"
+                height="64"
+              />
             </div>
           </div>
         </div>

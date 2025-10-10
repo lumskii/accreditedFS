@@ -26,11 +26,25 @@ const Hero: React.FC = () => {
                 <span>Proven success with hundreds of Arizona clients and 90-day money-back guarantee</span>
               </div>
             </div>
-            <a href="#booking" className="inline-block bg-[#f0d541] text-blue-800 font-semibold px-6 py-3 rounded-md hover:bg-[#e6cb3d] transition-colors">Schedule Free Consultation</a>
+            <a 
+              href="#booking" 
+              className="inline-block bg-[#f0d541] text-blue-800 font-semibold px-6 py-3 rounded-md hover:bg-[#e6cb3d] focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-colors"
+              aria-label="Schedule your free credit repair consultation"
+            >
+              Schedule Free Consultation
+            </a>
           </div>
           <div className="md:w-1/2 md:pl-10 flex items-center justify-center">
             <div className="w-full max-w-md">
-              <img src="/assets/credit_solution-min.png" alt="Arizona credit repair services showing credit score improvement from poor to excellent" className="w-full h-auto rounded-lg shadow-lg bg-white" />
+              <img 
+                src="/assets/credit_solution-min.png" 
+                alt="Arizona credit repair services showing credit score improvement from poor to excellent" 
+                className="w-full h-auto rounded-lg shadow-lg bg-white" 
+                loading="eager"
+                decoding="async"
+                width="400"
+                height="300"
+              />
             </div>
           </div>
         </div>

@@ -6,7 +6,15 @@ const About: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-12">
-            <img src="/assets/profilePic2.jpg" alt="Ola S, CEO of Accredited Financial Services, Arizona credit repair expert" className="rounded-lg shadow-lg w-full" />
+            <img 
+              src="/assets/profilePic2.jpg" 
+              alt="Ola S, CEO of Accredited Financial Services, Arizona credit repair expert" 
+              className="rounded-lg shadow-lg w-full" 
+              loading="lazy"
+              decoding="async"
+              width="400"
+              height="500"
+            />
               <div className="mt-4 text-center">
                 <p className="text-xl font-semibold text-blue-800">Ola S. <span className="text-sm font-medium text-[#000]">(CEO)</span></p>
               </div>

@@ -182,8 +182,8 @@ const BookingCTA: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* inline status messages */}
                 <div aria-live="polite" className="min-h-[2rem]">
-                  {successMessage && <div className="bg-green-100 text-green-800 px-3 py-2 rounded-md mb-2">{successMessage}</div>}
-                  {errorMessage && <div className="bg-red-100 text-red-800 px-3 py-2 rounded-md mb-2">{errorMessage}</div>}
+                  {successMessage && <div id="success-message" className="bg-green-100 text-green-800 px-3 py-2 rounded-md mb-2" role="alert">{successMessage}</div>}
+                  {errorMessage && <div id="error-message" className="bg-red-100 text-red-800 px-3 py-2 rounded-md mb-2" role="alert">{errorMessage}</div>}
                 </div>
                 <div>
                   <label htmlFor="name" className="block text-gray-700 mb-1">Full Name</label>
@@ -213,7 +213,12 @@ const BookingCTA: React.FC = () => {
                   <label htmlFor="message" className="block text-gray-700 mb-1">Additional Information (Optional)</label>
                   <textarea id="message" name="message" value={formData.message} onChange={handleChange} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
-                <button type="submit" disabled={isSending} className={`w-full ${isSending ? 'opacity-60 cursor-not-allowed' : ''} bg-[#f0d541] text-blue-800 font-semibold py-3 px-4 rounded-md hover:bg-[#e6cb3d] transition-colors flex items-center justify-center`}>
+                <button 
+                  type="submit" 
+                  disabled={isSending} 
+                  className={`w-full ${isSending ? 'opacity-60 cursor-not-allowed' : ''} bg-[#f0d541] text-blue-800 font-semibold py-3 px-4 rounded-md hover:bg-[#e6cb3d] focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-colors flex items-center justify-center`}
+                  aria-describedby={successMessage ? "success-message" : errorMessage ? "error-message" : undefined}
+                >
                   {isSending ? (
                     // simple inline spinner + text
                     <>
