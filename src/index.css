@@ -8,6 +8,27 @@ html, body, #root {
   height: 100%;
 }
 
+/* Smooth scrolling for the whole document */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scroll offset for sticky navbar */
+/* Account for navbar height (h-20 = 5rem = 80px) plus some padding */
+section[id] {
+  scroll-margin-top: 6rem; /* 96px - accounts for 80px navbar + 16px buffer */
+}
+
+/* Alternative for any element with an id that might be a scroll target */
+[id] {
+  scroll-margin-top: 6rem;
+}
+
+/* Override scroll margin for form elements to avoid issues */
+input[id], textarea[id], select[id] {
+  scroll-margin-top: 1rem;
+}
+
 /* Accessibility improvements */
 .sr-only {
   position: absolute;
@@ -42,6 +63,10 @@ html, body, #root {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
