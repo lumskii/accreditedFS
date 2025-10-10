@@ -8,29 +8,29 @@ const Hero: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-              Rebuild Your Credit. <br />
-              Reclaim Your Future.
+              Credit Repair Services in Arizona – Accredited Financial Services
             </h1>
-            <p className="text-xl mb-8 text-blue-100">The premier credit repair service helping individuals and families improve their financial standing with personalized strategies.</p>
+            <p className="text-xl mb-2 text-[#f0d541] font-semibold">Rebuild Your Credit. Reclaim Your Future.</p>
+            <p className="text-xl mb-8 text-blue-100">The premier credit repair service helping Arizona individuals and families improve their financial standing with personalized strategies and expert knowledge of credit laws.</p>
             <div className="space-y-3 mb-8">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Personalized credit repair strategies</span>
+                <span>Personalized credit repair strategies tailored to your unique financial situation</span>
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Expert knowledge of credit laws</span>
+                <span>Expert knowledge of Arizona and federal credit laws</span>
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Proven success with hundreds of clients</span>
+                <span>Proven success with hundreds of Arizona clients and 90-day money-back guarantee</span>
               </div>
             </div>
             <a href="#booking" className="inline-block bg-[#f0d541] text-blue-800 font-semibold px-6 py-3 rounded-md hover:bg-[#e6cb3d] transition-colors">Schedule Free Consultation</a>
           </div>
           <div className="md:w-1/2 md:pl-10 flex items-center justify-center">
             <div className="w-full max-w-md">
-              <img src="/assets/credit_solution-min.png" alt="Credit improvement illustration" className="w-full h-auto rounded-lg shadow-lg bg-white" />
+              <img src="/assets/credit_solution-min.png" alt="Arizona credit repair services showing credit score improvement from poor to excellent" className="w-full h-auto rounded-lg shadow-lg bg-white" />
             </div>
           </div>
         </div>

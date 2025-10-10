@@ -94,7 +94,7 @@ const Navbar: React.FC = () => {
   <div className="flex justify-between h-20 items-center">
           <div className="flex items-center">
             <a href="/" className="flex items-center">
-              <img src="/assets/afs-min.png" alt="Accredited Financial Services" className="h-28 md:h-36 lg:h-44 xl:h-52 w-auto mr-4 object-contain" />
+              <img src="/assets/afs-min.png" alt="Accredited Financial Services - Arizona Credit Repair Company Logo" className="h-28 md:h-36 lg:h-44 xl:h-52 w-auto mr-4 object-contain" />
             </a>
           </div>
           <div className="hidden md:flex items-center space-x-8">
