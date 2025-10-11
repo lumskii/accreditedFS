@@ -81,7 +81,8 @@ const Agreement: React.FC = () => {
               if (plan) {
                 setPlanDetails({
                   ...plan,
-                  paymentType: selectedMode === 'upfront' ? 'upfront' : 'monthly'
+                  // Map stored mode values ('full' | 'monthly' | legacy 'upfront') to Agreement paymentType
+                  paymentType: (selectedMode === 'full' || selectedMode === 'upfront') ? 'upfront' : 'monthly'
                 });
               }
             }

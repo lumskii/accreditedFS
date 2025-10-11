@@ -20,10 +20,14 @@ const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // If user is already logged in and verified, go to agreement
+    // If user is already logged in and verified, route to payment selection when plan is known
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user && user.emailVerified) {
-        navigate('/agreement')
+        if (plan) {
+          navigate(`/payment-mode?plan=${encodeURIComponent(plan)}`)
+        } else {
+          navigate('/agreement')
+        }
       }
     })
     return unsubscribe

@@ -448,10 +448,46 @@ const PriceCard: React.FC<{
           </div>
         </div>
 
-        {/* Single CTA: route users into the signup / multi-step flow. Payment option will be selected during signup/agreement. */}
+        {/* Single CTA: route users into the signup / multi-step flow.
+            If already logged in, save plan and route to payment-mode so the user can pick Full vs Monthly without bouncing back to Agreement.
+        */}
         <div className="">
           <button
-            onClick={() => navigate(`/signup?plan=${planSlug}`)}
+            onClick={async () => {
+              // If not authenticated, go to signup carrying the plan param
+              if (isAuthenticated === false) {
+                navigate(`/signup?plan=${planSlug}`)
+                return
+              }
+
+              // If authenticated, persist plan and go straight to payment selection
+              if (isAuthenticated === true) {
+                try {
+                  const { getAuth } = await import('firebase/auth')
+                  const { ref, set } = await import('firebase/database')
+                  const app = (await import('../firebase')).default
+                  const { database } = await import('../firebase')
+                  const auth = getAuth(app)
+                  const user = auth.currentUser
+                  if (user) {
+                    await set(ref(database, `users/${user.uid}/flow`), {
+                      plan: planSlug,
+                      selectedAt: Date.now()
+                    })
+                    navigate(`/payment-mode?plan=${planSlug}`)
+                    return
+                  }
+                } catch (e) {
+                  console.warn('Failed to persist plan before payment mode:', e)
+                }
+                // Fallback
+                navigate(`/signup?plan=${planSlug}`)
+                return
+              }
+
+              // Unknown auth state: default to signup
+              navigate(`/signup?plan=${planSlug}`)
+            }}
             className={`w-full py-3 rounded-md transition-colors flex items-center justify-center ${
               tier.recommended
                 ? "bg-[#f0d541] text-blue-800 hover:bg-[#e6cb3d]"
