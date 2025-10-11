@@ -114,8 +114,8 @@ const Navbar: React.FC = () => {
             <a href="/#about" className="text-gray-700 hover:text-blue-800 transition-colors">About</a>
             <a href="/#booking" className="bg-[#f0d541] text-blue-800 px-4 py-2 rounded-md hover:bg-[#e6cb3d] transition-colors font-medium">Book Consultation</a>
             
-            {/* User Dropdown - Only show if logged in and has a plan */}
-            {!isLoading && isLoggedIn && hasPlan && (
+            {/* User Dropdown - Show for all users */}
+            {!isLoading && (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -127,24 +127,36 @@ const Navbar: React.FC = () => {
                 
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    {!isAdmin && (
+                    {isLoggedIn && hasPlan ? (
+                      <>
+                        {!isAdmin && (
+                          <a 
+                            href="/dashboard" 
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setUserDropdownOpen(false)}
+                          >
+                            Dashboard
+                          </a>
+                        )}
+                        <button 
+                          onClick={() => {
+                            setUserDropdownOpen(false)
+                            handleLogout()
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Logout
+                        </button>
+                      </>
+                    ) : (
                       <a 
-                        href="/dashboard" 
+                        href="/login" 
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserDropdownOpen(false)}
                       >
-                        Dashboard
+                        Login
                       </a>
                     )}
-                    <button 
-                      onClick={() => {
-                        setUserDropdownOpen(false)
-                        handleLogout()
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Logout
-                    </button>
                   </div>
                 )}
               </div>
@@ -174,21 +186,27 @@ const Navbar: React.FC = () => {
             <a href="/#about" className="block px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">About</a>
             <a href="/#booking" className="block px-3 py-2 bg-[#f0d541] text-blue-800 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" onClick={() => setIsMenuOpen(false)} role="menuitem">Book Consultation</a>
             
-            {/* Mobile User Options - Only show for logged in users with plans */}
-            {!isLoading && isLoggedIn && hasPlan && (
+            {/* Mobile User Options - Show for all users */}
+            {!isLoading && (
               <>
-                {!isAdmin && (
-                  <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
+                {isLoggedIn && hasPlan ? (
+                  <>
+                    {!isAdmin && (
+                      <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
+                    )}
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        handleLogout()
+                      }} 
+                      className="block w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <a href="/login" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Login</a>
                 )}
-                <button 
-                  onClick={() => {
-                    setIsMenuOpen(false)
-                    handleLogout()
-                  }} 
-                  className="block w-full text-left px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-md"
-                >
-                  Logout
-                </button>
               </>
             )}
           </div>

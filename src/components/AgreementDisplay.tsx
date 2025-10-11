@@ -327,29 +327,78 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
 
         {/* Limited Power of Attorney */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Limited Power of Attorney</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">LIMITED POWER OF ATTORNEY</h2>
           
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            {/* Client Information Fields */}
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold min-w-[120px]">Client Name:</span>
+                <div className="flex-1 border-b border-gray-400 h-6"></div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold min-w-[120px]">Client Address:</span>
+                <div className="flex-1 border-b border-gray-400 h-6"></div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold min-w-[120px]">City, State, ZIP:</span>
+                <div className="flex-1 border-b border-gray-400 h-6"></div>
+              </div>
+            </div>
+
             <h3 className="text-lg font-semibold mb-4">1. Grant of Limited Authority</h3>
-            <p className="mb-4">The Client authorizes <strong>Accredited Financial Services</strong> to:</p>
-            <ul className="list-disc pl-6 space-y-1 mb-4">
-              <li>Prepare and send correspondence to Experian, Equifax, and TransUnion</li>
-              <li>Communicate with creditors solely for dispute resolution</li>
+            <p className="mb-4">
+              I, the undersigned Client, hereby appoint <strong>Accredited Financial Services</strong> ("Company") as 
+              my authorized representative with limited authority to:
+            </p>
+            <ul className="list-disc pl-8 space-y-2 mb-6">
+              <li>
+                Prepare, sign, and submit written correspondence on my behalf to the three major 
+                credit reporting agencies (Experian, Equifax, and TransUnion).
+              </li>
+              <li>
+                Communicate with creditors, lenders, or furnishers of information for the sole 
+                purpose of disputing or requesting correction of inaccurate, unverifiable, or 
+                obsolete information appearing on my credit reports.
+              </li>
             </ul>
 
             <h3 className="text-lg font-semibold mb-4">2. Restrictions</h3>
-            <p className="mb-2">The Company <strong>may not:</strong></p>
-            <ul className="list-disc pl-6 space-y-1 mb-4">
-              <li>Apply for credit or loans</li>
-              <li>Incur debt or contracts on Client's behalf</li>
-              <li>Take financial actions outside the dispute process</li>
+            <p className="mb-4">This Limited Power of Attorney <strong>does not</strong> authorize Company to:</p>
+            <ul className="list-disc pl-8 space-y-2 mb-6">
+              <li>Apply for credit, loans, or services in my name.</li>
+              <li>Incur debt or enter into contracts on my behalf.</li>
+              <li>Take any financial actions beyond the dispute process described above.</li>
             </ul>
 
             <h3 className="text-lg font-semibold mb-4">3. Term & Revocation</h3>
-            <p className="mb-4">Effective until services are complete or revoked in writing. Client may revoke anytime.</p>
+            <p className="mb-6">
+              This Limited Power of Attorney shall remain in effect until the completion of credit repair 
+              services or until revoked by me in writing. I may revoke this authorization at any time by 
+              delivering written notice to Company.
+            </p>
 
             <h3 className="text-lg font-semibold mb-4">4. Governing Law</h3>
-            <p>Governed by <strong>Arizona</strong> and federal law.</p>
+            <p className="mb-8">
+              This Limited Power of Attorney shall be governed by and construed in accordance with the 
+              laws of the State of Arizona and applicable federal law.
+            </p>
+
+            {/* Signature Section */}
+            <div className="border-t border-gray-300 pt-6 space-y-4">
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold min-w-[140px]">Client Signature:</span>
+                <div className="flex-1 border-b border-gray-400 h-8"></div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold min-w-[140px]">Date:</span>
+                <div className="w-40 border-b border-gray-400 h-8"></div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold min-w-[140px]">Printed Name:</span>
+                <div className="flex-1 border-b border-gray-400 h-8"></div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
