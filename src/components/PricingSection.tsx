@@ -339,7 +339,7 @@ const PriceCard: React.FC<{
       return;
     }
     
-    // If authenticated, store plan selection and proceed to agreement
+    // If authenticated, store plan selection and proceed to payment mode selection
     if (isAuthenticated === true) {
       try {
         // Store the plan selection in the user's flow data
@@ -352,23 +352,22 @@ const PriceCard: React.FC<{
         const user = auth.currentUser;
         
         if (user) {
-          // Save the selected plan and mode
+          // Save the selected plan
           await set(ref(database, `users/${user.uid}/flow`), {
             plan: planSlug,
-            mode: mode === 'full' ? 'upfront' : 'monthly',
             selectedAt: Date.now()
           });
           
-          // Navigate to agreement page
-          navigate('/agreement');
+          // Navigate to payment mode selection page
+          navigate(`/payment-mode?plan=${planSlug}`);
         } else {
           // User not found, redirect to login
           navigate(`/login`);
         }
       } catch (error) {
         console.error('Failed to save plan selection:', error);
-        // Fallback to checkout with params
-        navigate(`/checkout?plan=${planSlug}&mode=${mode}`);
+        // Fallback: redirect to signup with plan
+        navigate(`/signup?plan=${planSlug}&mode=${mode}`);
       }
       return;
     }

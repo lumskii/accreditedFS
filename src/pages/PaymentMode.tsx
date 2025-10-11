@@ -44,6 +44,18 @@ const PaymentMode: React.FC = () => {
   const currentPlan = planPricing[plan] || null
 
   useEffect(() => {
+    // If no plan is provided, redirect to pricing
+    if (!plan) {
+      navigate('/');
+      setTimeout(() => {
+        const pricingElement = document.getElementById('pricing');
+        if (pricingElement) {
+          pricingElement.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         navigate('/signup')
@@ -59,12 +71,6 @@ const PaymentMode: React.FC = () => {
           const flowData = flowSnap.val()
           if (flowData.mode) {
             setMode(flowData.mode)
-          }
-          
-          // If user is verified and has already selected a plan/mode, redirect to agreement
-          if (currentUser.emailVerified && flowData.plan && flowData.mode) {
-            navigate('/agreement')
-            return
           }
         }
       } catch (error) {
@@ -86,18 +92,22 @@ const PaymentMode: React.FC = () => {
       await set(ref(database, `users/${user.uid}/flow`), {
         plan,
         mode,
-        signupAt: Date.now()
+        selectedAt: Date.now()
       })
 
-      // Send verification email if not already sent
-      if (!user.emailVerified) {
-        const continueUrl = `${window.location.origin}/verify`
-        const actionCodeSettings = {
-          url: continueUrl,
-          handleCodeInApp: true
-        }
-        await sendEmailVerification(user, actionCodeSettings)
+      // If user is already verified, go directly to agreement
+      if (user.emailVerified) {
+        navigate('/agreement')
+        return
       }
+
+      // If not verified, send verification email and navigate to verify page
+      const continueUrl = `${window.location.origin}/verify`
+      const actionCodeSettings = {
+        url: continueUrl,
+        handleCodeInApp: true
+      }
+      await sendEmailVerification(user, actionCodeSettings)
 
       // Navigate to verification page
       navigate('/verify-email')
@@ -127,7 +137,7 @@ const PaymentMode: React.FC = () => {
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Account Created Successfully!
+            {user?.emailVerified ? 'Plan Selected!' : 'Account Created Successfully!'}
           </h1>
           
           {plan && (
@@ -204,20 +214,23 @@ const PaymentMode: React.FC = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            {loading ? 'Processing...' : 'Continue to Email Verification'}
+            {loading ? 'Processing...' : (user?.emailVerified ? 'Continue to Agreement' : 'Continue to Email Verification')}
           </button>
 
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate('/')}
             className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
           >
-            Back to Signup
+            Back to Home
           </button>
         </div>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            Next: We'll send you an email verification link to complete your account setup.
+            {user?.emailVerified 
+              ? 'Next: Review and sign the service agreement.' 
+              : 'Next: We\'ll send you an email verification link to complete your account setup.'
+            }
           </p>
         </div>
       </div>
