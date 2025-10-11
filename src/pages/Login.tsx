@@ -84,6 +84,11 @@ const Login: React.FC = () => {
 
       } else {
         // Sign up new user
+        if (!displayName.trim()) {
+          setMessage({ type: 'error', text: 'Full name is required' })
+          return
+        }
+
         if (password !== confirmPassword) {
           setMessage({ type: 'error', text: 'Passwords do not match' })
           return
@@ -97,10 +102,8 @@ const Login: React.FC = () => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         const user = userCredential.user
 
-        // Update display name if provided
-        if (displayName) {
-          await updateProfile(user, { displayName })
-        }
+        // Update display name (now required)
+        await updateProfile(user, { displayName: displayName.trim() })
 
         // Send email verification
         await sendEmailVerification(user)
@@ -111,7 +114,7 @@ const Login: React.FC = () => {
         
         await set(ref(database, `users/${user.uid}/profile`), {
           email: user.email,
-          displayName: displayName || null,
+          displayName: displayName.trim(),
           createdAt: Date.now(),
           emailVerified: false
         })
@@ -238,7 +241,7 @@ const Login: React.FC = () => {
             {!isLogin && (
               <div>
                 <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
-                  Full Name (Optional)
+                  Full Name
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -248,6 +251,7 @@ const Login: React.FC = () => {
                     id="displayName"
                     name="displayName"
                     type="text"
+                    required
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-800 focus:border-blue-800 sm:text-sm"

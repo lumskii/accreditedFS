@@ -193,10 +193,33 @@ const Agreement: React.FC = () => {
             Please sign in to continue
           </h2>
           <button 
-            onClick={() => navigate("/auth")}
+            onClick={() => navigate("/login")}
             className="bg-blue-700 text-white px-6 py-2 rounded-md"
           >
             Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has selected a plan
+  if (!planDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            Plan Selection Required
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You must select a credit repair plan before viewing the service agreement. 
+            Please return to the pricing page to choose your plan.
+          </p>
+          <button 
+            onClick={() => navigate("/#pricing")}
+            className="bg-blue-700 text-white px-6 py-2 rounded-md hover:bg-blue-800 transition-colors"
+          >
+            Select a Plan
           </button>
         </div>
       </div>

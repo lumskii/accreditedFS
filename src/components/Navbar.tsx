@@ -127,9 +127,9 @@ const Navbar: React.FC = () => {
                 
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    {isLoggedIn && hasPlan ? (
+                    {isLoggedIn ? (
                       <>
-                        {!isAdmin && (
+                        {hasPlan && !isAdmin && (
                           <a 
                             href="/dashboard" 
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -189,9 +189,9 @@ const Navbar: React.FC = () => {
             {/* Mobile User Options - Show for all users */}
             {!isLoading && (
               <>
-                {isLoggedIn && hasPlan ? (
+                {isLoggedIn ? (
                   <>
-                    {!isAdmin && (
+                    {hasPlan && !isAdmin && (
                       <a href="/dashboard" className="block px-3 py-2 text-blue-800 hover:bg-blue-50 hover:text-blue-900 font-medium rounded-md" onClick={() => setIsMenuOpen(false)}>Dashboard</a>
                     )}
                     <button 

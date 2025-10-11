@@ -154,9 +154,50 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
           </div>
         </section>
 
-        {/* Section 2 */}
+        {/* Selected Plan & Terms Section */}
+        {planDetails && details && (
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Selected Plan & Payment Terms</h2>
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 mb-4">
+              <h3 className="text-xl font-bold text-blue-900 mb-4">
+                SELECTED PLAN: {planDetails.name.toUpperCase()}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <div><strong>Total Plan Cost:</strong> {formatCurrency(details.totalCost)}</div>
+                  <div><strong>Payment Type:</strong> {details.isMonthly ? 'Monthly Installments' : 'One-time Upfront Payment'}</div>
+                  {details.isMonthly && (
+                    <>
+                      <div><strong>Setup Fee:</strong> {formatCurrency(details.setupFee)}</div>
+                      <div><strong>Monthly Payment:</strong> {formatCurrency(details.monthlyFee)}</div>
+                      <div><strong>Payment Term:</strong> {details.termLength}</div>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div><strong>Initial Payment:</strong> {formatCurrency(details.upfrontCost)}</div>
+                  <div><strong>Service Duration:</strong> Until completion or termination</div>
+                  <div><strong>Auto-Pay:</strong> {details.isMonthly ? 'Yes (Monthly)' : 'N/A'}</div>
+                </div>
+              </div>
+              
+              <div className="border-t border-blue-200 pt-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Payment Agreement:</h4>
+                <p className="text-sm text-blue-800">
+                  By signing this agreement, Client agrees to pay the total cost of <strong>{formatCurrency(details.totalCost)}</strong> for the 
+                  <strong> {planDetails.name}</strong> plan. {details.isMonthly ? 
+                    `Payment will be made through an initial payment of ${formatCurrency(details.upfrontCost)} followed by ${details.termLength.toLowerCase()} of ${formatCurrency(details.monthlyFee)} each.` :
+                    `Payment will be made as a one-time upfront payment of ${formatCurrency(details.upfrontCost)}.`
+                  } Client understands and agrees to these payment terms as outlined in this agreement.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Section 3 - Updated numbering */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Services Provided</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Services Provided</h2>
           <p className="mb-4">Company agrees to:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Review your credit reports (Experian, Equifax, and TransUnion)</li>
@@ -167,9 +208,9 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
           <p className="mt-4">All services are performed on a best-efforts basis in compliance with CROA, TSR, FCRA, and applicable state law.</p>
         </section>
 
-        {/* Section 3 */}
+        {/* Section 4 - Updated numbering */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Service Limitations & Client Responsibilities</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Service Limitations & Client Responsibilities</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Guidance and Recommendations:</strong> Company will provide strategic advice to support your credit improvement efforts.</li>
             <li><strong>Scope of Disputes:</strong> Company will address only the number of disputes specified in your plan.</li>
@@ -179,9 +220,9 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
           <p className="mt-4">Refunds are limited to unearned fees held in escrow as required by CROA. Once services are performed and documented, fees are deemed earned and non-refundable.</p>
         </section>
 
-        {/* Section 4 */}
+        {/* Section 5 - Updated numbering */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Prohibited Actions by Client</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Prohibited Actions by Client</h2>
           <p className="mb-2">You agree not to:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Run or authorize unknown credit inquiries</li>
@@ -191,9 +232,9 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
           <p className="mt-4">Violations may result in termination of services without refund, except as required by CROA for unearned escrowed funds.</p>
         </section>
 
-        {/* Section 5 */}
+        {/* Section 6 - Updated numbering */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Understanding Credit Scores, Variations & Limitations</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Understanding Credit Scores, Variations & Limitations</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Normal Score Variations:</strong> Minor fluctuations are normal and not a service failure.</li>
             <li><strong>No Guaranteed Score Increase:</strong> Company cannot guarantee any specific score increase or lending outcome.</li>
@@ -202,7 +243,7 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
 
         {/* Section 6 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Fees, Payment Terms & Escrow of Initial Deposit</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Fees, Payment Terms & Escrow of Initial Deposit</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Program Fee:</strong> The agreed-upon price for the selected plan.</li>
             <li><strong>Initial Deposit:</strong> Held in escrow by a third-party agent until services are performed and verified.</li>
@@ -215,13 +256,13 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
 
         {/* Section 7 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Credit Monitoring Membership Requirement</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Credit Monitoring Membership Requirement</h2>
           <p>You must maintain an active credit monitoring membership during the agreement term. Failure to do so may suspend services and void refund eligibility.</p>
         </section>
 
         {/* Section 8 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Refunds, Guarantees & Non-Refundable Fees</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Refunds, Guarantees & Non-Refundable Fees</h2>
           <p className="mb-4">Refunds are only available for unearned fees held in escrow in accordance with CROA. Once services are performed and documented, fees are deemed earned and are non-refundable. 
 Any unearned funds remaining in escrow upon cancellation will be returned to Client within fifteen (10) business days.</p>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -232,7 +273,7 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
 
         {/* Section 9 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Right to Cancel (CROA Notice)</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Right to Cancel (CROA Notice)</h2>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="font-semibold text-yellow-800 mb-2">You have the right to cancel this Agreement without penalty or obligation within five (5) calendar days after the date you sign it. To cancel, you must notify the Company in writing by certified mail or email. Any unearned fees held in escrow will be refunded promptly. </p>
             <div className="text-yellow-700">
@@ -250,12 +291,12 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
 
         {/* Section 10-12 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Chargeback Policy</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Chargeback Policy</h2>
           <p>Unauthorized chargebacks are prohibited and treated as a material breach. Clients should resolve issues directly with the Company.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Client Acknowledgments</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Client Acknowledgments</h2>
           <p className="mb-2">By signing, the Client acknowledges:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Results vary; no guarantees.</li>
@@ -265,49 +306,49 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">12. No Legal or Financial Advice</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">13. No Legal or Financial Advice</h2>
           <p>The Company is not a law, financial, or tax advisory firm. Clients are encouraged to seek independent counsel.</p>
         </section>
 
         {/* Sections 13-20 */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Limitation of Liability & Indemnification</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Limitation of Liability & Indemnification</h2>
           <p>Company liability is limited to total fees paid. Client agrees to indemnify the Company against claims arising from inaccurate information or breach.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">14. State-Specific Disclosures</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">15. State-Specific Disclosures</h2>
           <p>Additional addenda will be provided for states with extra credit repair requirements.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Dispute Resolution & Arbitration</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Dispute Resolution & Arbitration</h2>
           <p>Disputes are subject to <strong>binding arbitration in Arizona</strong>, unless CROA preserves the right to federal court. Each party bears its own legal fees unless otherwise awarded.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Electronic Signature Acknowledgment</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">17. Electronic Signature Acknowledgment</h2>
           <p>Electronic signatures are binding under the <strong>E-SIGN Act</strong>.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">17. Severability</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">18. Severability</h2>
           <p>If any provision is invalid, the remainder shall continue in full force.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">18. Entire Agreement</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">19. Entire Agreement</h2>
           <p>This document represents the full and final agreement between the parties.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">19. Confidentiality</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">20. Confidentiality</h2>
           <p>All personal and financial information remains confidential except as required by law.</p>
         </section>
 
         {/* Section 20 - Know Your Rights */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">20. Know Your Rights</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">21. Know Your Rights</h2>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="font-semibold text-blue-800 mb-3">Under Section 405 of the Credit Repair Organizations Act (CROA):</p>
             <ul className="list-disc pl-6 space-y-1 text-blue-700">
