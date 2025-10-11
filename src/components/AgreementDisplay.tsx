@@ -176,7 +176,7 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
             <li><strong>Targeted Items:</strong> Only items present on your credit report at signup are covered.</li>
             <li><strong>Client Responsibilities:</strong> You agree to maintain credit monitoring, make timely payments, avoid unauthorized inquiries, and cooperate fully.</li>
           </ul>
-          <p className="mt-4">Refunds are limited to unearned fees held in escrow as required by CROA.</p>
+          <p className="mt-4">Refunds are limited to unearned fees held in escrow as required by CROA. Once services are performed and documented, fees are deemed earned and non-refundable.</p>
         </section>
 
         {/* Section 4 */}
@@ -222,10 +222,11 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
         {/* Section 8 */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Refunds, Guarantees & Non-Refundable Fees</h2>
-          <p className="mb-4">Refunds apply only to unearned fees held in escrow. Once services are performed and documented, fees are non-refundable.</p>
+          <p className="mb-4">Refunds are only available for unearned fees held in escrow in accordance with CROA. Once services are performed and documented, fees are deemed earned and are non-refundable. 
+Any unearned funds remaining in escrow upon cancellation will be returned to Client within fifteen (10) business days.</p>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <h4 className="font-semibold text-green-800 mb-2">90-Day Results Guarantee</h4>
-            <p className="text-green-700">If, after 90 days of compliance, no verifiable result has been achieved, unearned funds in escrow will be refunded.</p>
+            <p className="text-green-700">If, after ninety (90) consecutive days of active participation in the Program and full compliance with Client obligations under this Agreement, Company has not achieved at least one Verifiable Result for Client, only the unearned funds remaining in escrow will be refunded. Fees already earned and released to Company are non-refundable regardless of cancellation.</p>
           </div>
         </section>
 
@@ -233,9 +234,9 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Right to Cancel (CROA Notice)</h2>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="font-semibold text-yellow-800 mb-2">You may cancel within five (5) calendar days without penalty by sending written notice.</p>
+            <p className="font-semibold text-yellow-800 mb-2">You have the right to cancel this Agreement without penalty or obligation within five (5) calendar days after the date you sign it. To cancel, you must notify the Company in writing by certified mail or email. Any unearned fees held in escrow will be refunded promptly. </p>
             <div className="text-yellow-700">
-              <p className="font-medium">Send cancellations to:</p>
+              <p className="font-medium">Send cancellations via mail or email to:</p>
               <div className="mt-2">
                 <strong>Accredited Financial Services</strong><br />
                 Attn: Cancellations<br />
