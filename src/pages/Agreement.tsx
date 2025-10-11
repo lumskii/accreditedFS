@@ -126,7 +126,7 @@ const Agreement: React.FC = () => {
         planDetails: planDetails || null,
       });
 
-      // Navigate to checkout
+      // Navigate to checkout or dashboard based on context
       try {
         let finalPlan = searchParams.get("plan");
         let finalMode = searchParams.get("mode");
@@ -144,12 +144,18 @@ const Agreement: React.FC = () => {
           finalMode = finalMode || (planDetails.paymentType === 'upfront' ? 'full' : 'monthly');
         }
         
-        const planParam = finalPlan ? `?plan=${finalPlan}` : "";
-        const modeParam = finalMode ? `${planParam ? "&" : "?"}mode=${finalMode}` : "";
-        navigate(`/checkout${planParam}${modeParam}`);
+        // If we have plan and mode parameters, go to checkout (purchase flow)
+        if (finalPlan && finalMode) {
+          const planParam = `?plan=${finalPlan}`;
+          const modeParam = `&mode=${finalMode}`;
+          navigate(`/checkout${planParam}${modeParam}`);
+        } else {
+          // Otherwise, go to dashboard (user just signing agreement)
+          navigate("/dashboard");
+        }
       } catch (e) {
-        // Fallback - the checkout component will handle missing params
-        navigate("/checkout");
+        // Fallback - go to dashboard
+        navigate("/dashboard");
       }
     } catch (err: any) {
       setError(err.message || "Failed to save agreement");
