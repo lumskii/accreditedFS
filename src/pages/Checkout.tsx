@@ -61,7 +61,40 @@ const Checkout: React.FC = () => {
           return;
         }
         
+        const agreementData = agrSnap.val();
         console.log('Agreement verified, proceeding to checkout...');
+
+        // Get plan and mode from URL params or from signed agreement
+        let finalPlan = plan;
+        let finalMode = mode;
+        
+        // If URL params are missing but we have plan details in agreement, use those
+        if ((!plan || !mode) && agreementData.planDetails) {
+          const planDetails = agreementData.planDetails;
+          
+          // Map plan names to API format
+          const planNameMap: Record<string, string> = {
+            "Credit Refresh": "credit-refresh",
+            "Credit Rebuild": "credit-rebuild", 
+            "Couples Advantage": "couples-advantage"
+          };
+          
+          finalPlan = finalPlan || planNameMap[planDetails.name as string] || "";
+          
+          // Determine mode from plan details
+          if (!finalMode) {
+            finalMode = planDetails.paymentType === 'upfront' ? 'full' : 'monthly';
+          }
+        }
+        
+        // Validate we have required parameters
+        if (!finalPlan || !finalMode) {
+          setError("Missing payment plan information. Please select a plan again.");
+          setLoading(false);
+          return;
+        }
+
+        console.log('Using plan:', finalPlan, 'mode:', finalMode);
 
         // Force a refreshed ID token so server sees updated emailVerified claim
         const idToken = await freshUser.getIdToken(true);
@@ -75,9 +108,10 @@ const Checkout: React.FC = () => {
         
         console.log('API endpoint:', endpoint); // Debug log
 
-        const body: Record<string, any> = {};
-        if (plan) body.plan = plan;
-        if (mode) body.mode = mode;
+        const body: Record<string, any> = {
+          plan: finalPlan,
+          mode: finalMode
+        };
 
         const res = await fetch(endpoint, {
           method: "POST",
