@@ -8,10 +8,10 @@ const Hero: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-              Credit Repair Services in Arizona – Accredited Financial Services
+              Accredited Financial Services
             </h1>
             <p className="text-xl mb-2 text-[#f0d541] font-semibold">Rebuild Your Credit. Reclaim Your Future.</p>
-            <p className="text-xl mb-8 text-blue-100">The premier credit repair service helping Arizona individuals and families improve their financial standing with personalized strategies and expert knowledge of credit laws.</p>
+            <p className="text-xl mb-8 text-blue-100">The premier credit repair service helping individuals and families improve their financial standing with personalized strategies and expert knowledge of credit laws.</p>
             <div className="space-y-3 mb-8">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
@@ -19,11 +19,11 @@ const Hero: React.FC = () => {
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Expert knowledge of Arizona and federal credit laws</span>
+                <span>Expert knowledge of credit laws</span>
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Proven success with hundreds of Arizona clients and 90-day money-back guarantee</span>
+                <span>Proven success with hundreds of clients</span>
               </div>
             </div>
             <a 

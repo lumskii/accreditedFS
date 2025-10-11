@@ -1,5 +1,5 @@
 import React from 'react'
-import { Phone, Mail, Facebook, Instagram, Linkedin } from 'lucide-react'
+import { Phone, Mail, Facebook, Instagram, Linkedin, MapPinIcon } from 'lucide-react'
 
 const Footer: React.FC = () => {
   return (
@@ -8,8 +8,8 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="text-xl font-bold text-white mb-4">Accredited Financial Services</div>
-            <p className="mb-4">Helping Arizona individuals and families improve their credit scores and achieve financial freedom since 2018. Professional credit repair services with a 90-day money-back guarantee.</p>
-            <p className="mb-4 text-sm">Serving Arizona residents with expert credit repair, dispute resolution, and financial education services.</p>
+            <p className="mb-4">Helping individuals and families improve their credit scores and achieve financial freedom since 2018. Professional credit repair services with a 90-day money-back guarantee.</p>
+            <p className="mb-4 text-sm">Serving residents with expert credit repair, dispute resolution, and financial education services.</p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-white transition-colors" aria-label="Follow us on Facebook"><Facebook size={20} /></a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors" aria-label="Connect with us on LinkedIn"><Linkedin size={20} /></a>
@@ -18,11 +18,11 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Credit Repair Services</h3>
             <ul className="space-y-2">
-              <li><a href="#services" className="hover:text-white transition-colors">Arizona Credit Analysis</a></li>
+              <li><a href="#services" className="hover:text-white transition-colors">Credit Services</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Credit Repair Pricing</a></li>
               <li><a href="#benefits" className="hover:text-white transition-colors">Why Choose Our Services</a></li>
               <li><a href="#testimonials" className="hover:text-white transition-colors">Client Success Stories</a></li>
-              <li><a href="#about" className="hover:text-white transition-colors">About Our Team</a></li>
+              <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
               <li><a href="#booking" className="hover:text-white transition-colors">Free Consultation</a></li>
             </ul>
           </div>
@@ -31,15 +31,16 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-start"><Phone className="h-5 w-5 mr-3 mt-0.5" /> <span>(928) 320-7474</span></li>
               <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditedfs.com</span></li>
+              <li className="flex items-start"><MapPinIcon className="h-5 w-5 mr-3 mt-0.5" /> <span>101 N Colonado St #131 <br /> Chandler, AZ <br />85244</span></li>
               <li className="text-sm">
                 <strong>Service Area:</strong><br />
-                Arizona Statewide<br />
-                Phoenix, Tucson, Mesa, Chandler,<br />
-                Glendale, Scottsdale & surrounding areas
+                Nation wide<br />
+                Arizon, Texas, California, New York,<br />
+                & surrounding areas
               </li>
               <li className="text-sm">
                 <strong>Business Hours:</strong><br />
-                Monday - Friday: 9:00 AM - 5:00 PM MST
+                Monday - Friday: 10:00 AM - 6:00 PM MST
               </li>
             </ul>
           </div>

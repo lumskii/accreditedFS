@@ -30,7 +30,7 @@ const Testimonials: React.FC = () => {
             <div className="flex text-[#f0d541] mb-4">
               <Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" />
             </div>
-            <p className="text-gray-600 mb-4">"I was denied for an auto loan due to my credit score. After working with Prestigious Financial Services for 3 months, I was approved with a great interest rate. Their expertise is worth every penny."</p>
+            <p className="text-gray-600 mb-4">"I was denied for an auto loan due to my credit score. After working with Accredited Financial Services for 3 months, I was approved with a great interest rate. Their expertise is worth every penny."</p>
             <div className="font-semibold">David L.</div>
             <div className="text-sm text-gray-500">Tempe, AZ</div>
           </div>

@@ -20,13 +20,13 @@ const About: React.FC = () => {
               </div>
           </div>
           <div className="md:w-1/2">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">About Accredited Financial Services Arizona</h2>
-            <p className="text-gray-600 mb-6">As a finance major, I began my credit repair journey in 2018 in Arizona, determined to build strong credit for myself. Through strategic planning, understanding of credit laws, and persistence, I raised my score into the high 700s and discovered a passion for helping other Arizona residents do the same.</p>
-            <p className="text-gray-600 mb-6">Along the way, friends and family throughout Arizona began asking me for guidance, and I discovered how much I enjoy teaching others what most of us were never taught in school — how credit really works and how to navigate Arizona's financial landscape. Over time, I turned this knowledge into a professional credit repair service that makes credit restoration simple and effective for Arizona residents.</p>
-            <p className="text-gray-600 mb-6">Today, Accredited Financial Services uses that same proven approach to help Arizona individuals and families take control of their credit, overcome financial challenges, and build a foundation for lasting financial success. We understand the unique financial landscape in Arizona and tailor our credit repair strategies accordingly.</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">About Accredited Financial Services</h2>
+            <p className="text-gray-600 mb-6">As a finance major, I began my credit repair journey in 2018, determined to build strong credit for myself. Through strategic planning, understanding of credit laws, and persistence, I raised my score into the high 700s and discovered a passion for helping other Arizona residents do the same.</p>
+            <p className="text-gray-600 mb-6">Along the way, friends and family began asking me for guidance, and I discovered how much I enjoy teaching others what most of us were never taught in school — how credit really works. Over time, I turned this knowledge into a professional credit repair service that makes credit restoration simple and effective.</p>
+            <p className="text-gray-600 mb-6">Today, Accredited Financial Services uses that same proven approach to help individuals and families take control of their credit, overcome financial challenges, and build a foundation for lasting financial success.</p>
             <div className="flex space-x-4">
               <a href="#booking" className="bg-[#f0d541] text-blue-800 font-semibold px-6 py-3 rounded-md hover:bg-[#e6cb3d] transition-colors">Schedule a Free Credit Consultation</a>
-              <a href="#booking" className="bg-white text-gray-800 font-semibold px-6 py-3 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">Contact Arizona Credit Experts</a>
+              <a href="#booking" className="bg-white text-gray-800 font-semibold px-6 py-3 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">Contact Us</a>
             </div>
           </div>
         </div>
