@@ -128,14 +128,27 @@ const Agreement: React.FC = () => {
 
       // Navigate to checkout
       try {
-        const planParam = searchParams.get("plan")
-          ? `?plan=${searchParams.get("plan")}`
-          : "";
-        const modeParam = searchParams.get("mode")
-          ? `${planParam ? "&" : "?"}mode=${searchParams.get("mode")}`
-          : "";
+        let finalPlan = searchParams.get("plan");
+        let finalMode = searchParams.get("mode");
+        
+        // If URL params are missing, derive them from plan details
+        if ((!finalPlan || !finalMode) && planDetails) {
+          // Map plan names to API format
+          const planNameMap: Record<string, string> = {
+            "Credit Refresh": "credit-refresh",
+            "Credit Rebuild": "credit-rebuild", 
+            "Couples Advantage": "couples-advantage"
+          };
+          
+          finalPlan = finalPlan || planNameMap[planDetails.name] || "";
+          finalMode = finalMode || (planDetails.paymentType === 'upfront' ? 'full' : 'monthly');
+        }
+        
+        const planParam = finalPlan ? `?plan=${finalPlan}` : "";
+        const modeParam = finalMode ? `${planParam ? "&" : "?"}mode=${finalMode}` : "";
         navigate(`/checkout${planParam}${modeParam}`);
       } catch (e) {
+        // Fallback - the checkout component will handle missing params
         navigate("/checkout");
       }
     } catch (err: any) {
