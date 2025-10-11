@@ -116,19 +116,9 @@ const Agreement: React.FC = () => {
     setError("");
 
     try {
-      // Save agreement to database
+      // Save agreement to database under user's path
       await set(ref(database, `users/${user.uid}/agreement`), {
-        signedName: signName,
-        signedAt: new Date().toISOString(),
-        ipAddress: "user-ip-placeholder",
-        userAgent: navigator.userAgent,
-        planDetails: planDetails || null,
-      });
-
-      // Save to signedAgreements collection too
-      await push(ref(database, "signedAgreements"), {
-        userId: user.uid,
-        userEmail: user.email,
+        agreed: true,
         signedName: signName,
         signedAt: new Date().toISOString(),
         ipAddress: "user-ip-placeholder",
