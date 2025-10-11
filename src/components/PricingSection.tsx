@@ -339,13 +339,35 @@ const PriceCard: React.FC<{
       return;
     }
     
-    // If authenticated, try to proceed to checkout
+    // If authenticated, store plan selection and proceed to agreement
     if (isAuthenticated === true) {
       try {
-        await handleCheckout(planSlug, mode);
+        // Store the plan selection in the user's flow data
+        const { getAuth } = await import('firebase/auth');
+        const { ref, set } = await import('firebase/database');
+        const app = (await import('../firebase')).default;
+        const { database } = await import('../firebase');
+        
+        const auth = getAuth(app);
+        const user = auth.currentUser;
+        
+        if (user) {
+          // Save the selected plan and mode
+          await set(ref(database, `users/${user.uid}/flow`), {
+            plan: planSlug,
+            mode: mode === 'full' ? 'upfront' : 'monthly',
+            selectedAt: Date.now()
+          });
+          
+          // Navigate to agreement page
+          navigate('/agreement');
+        } else {
+          // User not found, redirect to login
+          navigate(`/login`);
+        }
       } catch (error) {
-        console.error('Checkout failed:', error);
-        // If checkout fails (e.g., not verified or no agreement), let the protected route handle it
+        console.error('Failed to save plan selection:', error);
+        // Fallback to checkout with params
         navigate(`/checkout?plan=${planSlug}&mode=${mode}`);
       }
       return;

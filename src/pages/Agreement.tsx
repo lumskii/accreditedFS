@@ -216,7 +216,16 @@ const Agreement: React.FC = () => {
             Please return to the pricing page to choose your plan.
           </p>
           <button 
-            onClick={() => navigate("/#pricing")}
+            onClick={() => {
+              // Navigate to home page and scroll to pricing section
+              navigate("/");
+              setTimeout(() => {
+                const pricingElement = document.getElementById('pricing');
+                if (pricingElement) {
+                  pricingElement.scrollIntoView({ behavior: 'smooth' });
+                }
+              }, 100);
+            }}
             className="bg-blue-700 text-white px-6 py-2 rounded-md hover:bg-blue-800 transition-colors"
           >
             Select a Plan

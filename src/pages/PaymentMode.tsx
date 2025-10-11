@@ -52,12 +52,6 @@ const PaymentMode: React.FC = () => {
       
       setUser(currentUser)
       
-      // If user is already verified, skip to agreement
-      if (currentUser.emailVerified) {
-        navigate('/agreement')
-        return
-      }
-      
       // Check if user already has a flow saved
       try {
         const flowSnap = await get(ref(database, `users/${currentUser.uid}/flow`))
@@ -65,6 +59,12 @@ const PaymentMode: React.FC = () => {
           const flowData = flowSnap.val()
           if (flowData.mode) {
             setMode(flowData.mode)
+          }
+          
+          // If user is verified and has already selected a plan/mode, redirect to agreement
+          if (currentUser.emailVerified && flowData.plan && flowData.mode) {
+            navigate('/agreement')
+            return
           }
         }
       } catch (error) {
