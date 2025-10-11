@@ -17,6 +17,7 @@ import AdminLogin from './pages/AdminLogin'
 import AdminSetup from './pages/AdminSetup'
 import AdminDashboard from './pages/AdminDashboard'
 import Agreement from './pages/Agreement'
+import AgreementView from './pages/AgreementView'
 import Success from './components/Success'
 import Cancel from './components/Cancel'
 import Checkout from './pages/Checkout'
@@ -77,6 +78,14 @@ export function App() {
             element={
               <ProtectedRoute requireEmailVerification={true} requireAgreement={false}>
                 <Agreement />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/agreement-view" 
+            element={
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+                <AgreementView />
               </ProtectedRoute>
             } 
           />

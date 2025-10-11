@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress' | 'agreements'>('overview')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -237,7 +237,8 @@ const Dashboard: React.FC = () => {
             {[
               { id: 'overview', label: 'Overview', icon: User },
               { id: 'payments', label: 'Payments', icon: CreditCard },
-              { id: 'progress', label: 'Progress', icon: TrendingUp }
+              { id: 'progress', label: 'Progress', icon: TrendingUp },
+              { id: 'agreements', label: 'Agreements', icon: FileText }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -569,6 +570,132 @@ const Dashboard: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Agreements Tab */}
+        {activeTab === 'agreements' && (
+          <div className="space-y-6">
+            {/* Signed Agreement */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                Service Agreement
+              </h3>
+              
+              {dashboardData.agreement && dashboardData.agreement.agreed ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <p className="text-sm font-medium text-green-800">
+                        Agreement Signed and Active
+                      </p>
+                    </div>
+                    <p className="text-sm text-green-700 mt-1">
+                      Your service agreement is in effect and covers your selected credit repair plan.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Agreement Details</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Signed Name:</span>
+                          <span className="font-medium">{dashboardData.user.displayName || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Email:</span>
+                          <span className="font-medium">{dashboardData.user.email}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Status:</span>
+                          <span className="font-medium text-green-600">Active</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Selected Plan</h4>
+                      {dashboardData.currentPlan ? (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Plan:</span>
+                            <span className="font-medium">{dashboardData.currentPlan.plan}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Status:</span>
+                            <span className="font-medium capitalize">{dashboardData.currentPlan.status}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Plan details not available</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => {
+                        // Navigate to view full agreement
+                        navigate('/agreement-view')
+                      }}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Full Agreement
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        // Download agreement functionality
+                        window.print()
+                      }}
+                      className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600 mb-2">No Agreement Found</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    You haven't signed a service agreement yet.
+                  </p>
+                  <button
+                    onClick={() => navigate('/agreement')}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Sign Agreement
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Agreement History */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Agreement History</h3>
+              <div className="space-y-3">
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg">
+                  <div className="p-2 rounded-full bg-green-100 mr-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      Service Agreement Signed
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {dashboardData.user.joinDate ? formatDate(dashboardData.user.joinDate) : 'Date not available'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
