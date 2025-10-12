@@ -108,16 +108,23 @@ const AdminDashboard: React.FC = () => {
       // Get auth token
       const token = await user.getIdToken()
       
-      // API endpoint configuration - use environment variable or fallback
-      const isDev = import.meta.env.DEV;
-      const apiBase = import.meta.env.VITE_API_BASE || 
-        (isDev 
-          ? '' // Use relative URL for proxy in dev
-          : 'https://accredited-hb1xpqq7c-mikes-projects-eb8d5010.vercel.app'); // Use latest working deployment
-      
+      // API endpoint configuration - prefer env var; never use localhost in prod; default to custom API domain
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
       // Add cache busting timestamp
       const timestamp = Date.now();
-      const endpoint = `${apiBase}/api/admin-users?t=${timestamp}`;
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users?t=${timestamp}`
+        : `/api/admin-users?t=${timestamp}`
       
       console.log('Admin API endpoint:', endpoint);
       console.log('Request headers:', {
@@ -221,8 +228,20 @@ const AdminDashboard: React.FC = () => {
         itemsRemoved: parseInt(progressForm.itemsRemoved) || 0
       }
       
-      const apiBase = import.meta.env.VITE_API_BASE || "https://accredited-8w89sev1g-mikes-projects-eb8d5010.vercel.app"
-      const response = await fetch(`${apiBase}/api/update-progress`, {
+      const envApiBase2 = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev2 = import.meta.env.MODE === 'development'
+      const defaultProdApi2 = 'https://api.accreditedfs.com'
+      const isBrowser2 = typeof window !== 'undefined'
+      const currentOrigin2 = isBrowser2 ? window.location.origin : ''
+      const onHttpsOrigin2 = isBrowser2 && currentOrigin2.startsWith('https://')
+      const looksLikeLocal2 = !!envApiBase2 && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase2)
+      const resolvedApiBase2 = envApiBase2 && !(onHttpsOrigin2 && looksLikeLocal2)
+        ? envApiBase2
+        : (isDev2 ? '' : defaultProdApi2)
+      const updEndpoint = resolvedApiBase2
+        ? `${resolvedApiBase2.replace(/\/$/, '')}/api/update-progress`
+        : `/api/update-progress`
+      const response = await fetch(updEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
