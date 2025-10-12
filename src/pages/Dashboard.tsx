@@ -115,12 +115,19 @@ const Dashboard: React.FC = () => {
         const idToken = await user.getIdToken(true)
         
         // Use the same API endpoint resolution logic as PricingSection
-        const envApiBase = import.meta.env.VITE_API_BASE
+        const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
         const isDev = import.meta.env.MODE === "development"
         const defaultProdApi = "https://api.accreditedfs.com"
-        const apiBase = envApiBase || (isDev ? "" : defaultProdApi)
-        const endpoint = apiBase
-          ? `${apiBase.replace(/\/$/, "")}/api/user-dashboard`
+        // Safety: never use a localhost API base when running on a public HTTPS origin
+        const isBrowser = typeof window !== 'undefined'
+        const currentOrigin = isBrowser ? window.location.origin : ''
+        const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+        const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+        const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+          ? envApiBase
+          : (isDev ? '' : defaultProdApi)
+        const endpoint = resolvedApiBase
+          ? `${resolvedApiBase.replace(/\/$/, "")}/api/user-dashboard`
           : "/api/user-dashboard"
 
         console.log('Making dashboard API call to:', endpoint)
