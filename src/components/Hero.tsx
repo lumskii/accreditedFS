@@ -15,7 +15,7 @@ const Hero: React.FC = () => {
             <div className="space-y-3 mb-8">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />
-                <span>Personalized credit repair strategies tailored to your unique financial situation</span>
+                <span>Personalized credit repair strategies</span>
               </div>
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-[#f0d541] mr-2" />

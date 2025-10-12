@@ -24,8 +24,18 @@ const Login: React.FC = () => {
         const app = (await import('../firebase')).default
         const auth = getAuth(app)
         
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
           if (user) {
+            try {
+              const { ref, get } = await import('firebase/database')
+              const { database } = await import('../firebase')
+              const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
+              const isAdmin = adminSnap.exists() && !!adminSnap.val()
+              if (isAdmin) {
+                navigate('/admin/dashboard', { replace: true })
+                return
+              }
+            } catch {}
             // User is already logged in, redirect to dashboard or intended destination
             const from = location.state?.from?.pathname || '/dashboard'
             navigate(from, { replace: true })
@@ -67,17 +77,21 @@ const Login: React.FC = () => {
           return
         }
 
-        // Check if user has signed agreement
+        // Check admin role first
         const { ref, get } = await import('firebase/database')
         const { database } = await import('../firebase')
-        
+        const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
+        const isAdmin = adminSnap.exists() && !!adminSnap.val()
+        if (isAdmin) {
+          navigate('/admin/dashboard', { replace: true })
+          return
+        }
+
+        // Non-admin: Check if user has signed agreement
         const agreementSnap = await get(ref(database, `users/${user.uid}/agreement`))
-        
         if (!agreementSnap.exists() || !agreementSnap.val().agreed) {
-          // Redirect to agreement page
           navigate('/agreement')
         } else {
-          // Redirect to dashboard or intended destination
           const from = location.state?.from?.pathname || '/dashboard'
           navigate(from, { replace: true })
         }

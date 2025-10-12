@@ -21,8 +21,19 @@ const Signup: React.FC = () => {
 
   useEffect(() => {
     // If user is already logged in and verified, route to payment selection when plan is known
-    const unsubscribe = auth.onAuthStateChanged(user => {
+    const unsubscribe = auth.onAuthStateChanged(async user => {
       if (user && user.emailVerified) {
+        try {
+          const { ref, get } = await import('firebase/database')
+          const { database } = await import('../firebase')
+          const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
+          const isAdmin = adminSnap.exists() && !!adminSnap.val()
+          if (isAdmin) {
+            navigate('/admin/dashboard')
+            return
+          }
+        } catch {}
+
         if (plan) {
           navigate(`/payment-mode?plan=${encodeURIComponent(plan)}`)
         } else {

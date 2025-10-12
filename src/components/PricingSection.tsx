@@ -470,6 +470,15 @@ const PriceCard: React.FC<{
                   const auth = getAuth(app)
                   const user = auth.currentUser
                   if (user) {
+                    // If admin, skip user flow
+                    try {
+                      const { get } = await import('firebase/database')
+                      const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
+                      if (adminSnap.exists() && !!adminSnap.val()) {
+                        navigate('/admin/dashboard')
+                        return
+                      }
+                    } catch {}
                     await set(ref(database, `users/${user.uid}/flow`), {
                       plan: planSlug,
                       selectedAt: Date.now()

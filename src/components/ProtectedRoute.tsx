@@ -17,12 +17,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     isAuthenticated: boolean
     isEmailVerified: boolean
     hasAgreement: boolean
+    isAdmin: boolean
     user: any
   }>({
     isLoading: true,
     isAuthenticated: false,
     isEmailVerified: false,
     hasAgreement: false,
+    isAdmin: false,
     user: null
   })
   
@@ -32,7 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const checkAuthState = async () => {
       try {
         const { getAuth, onAuthStateChanged } = await import('firebase/auth')
-        const { ref, get } = await import('firebase/database')
+  const { ref, get } = await import('firebase/database')
         const { database } = await import('../firebase')
         const app = (await import('../firebase')).default
         const auth = getAuth(app)
@@ -44,9 +46,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             
             // Check if user has signed agreement
             let hasAgreement = false
+            // Check admin role
+            let isAdmin = false
             try {
               const agreementSnap = await get(ref(database, `users/${user.uid}/agreement`))
               hasAgreement = agreementSnap.exists() && agreementSnap.val().agreed
+              const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
+              isAdmin = adminSnap.exists() && !!adminSnap.val()
             } catch (error) {
               console.warn('Failed to check agreement status:', error)
             }
@@ -56,6 +62,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: true,
               isEmailVerified,
               hasAgreement,
+              isAdmin,
               user
             })
           } else {
@@ -64,6 +71,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: false,
               isEmailVerified: false,
               hasAgreement: false,
+              isAdmin: false,
               user: null
             })
           }
@@ -96,6 +104,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Redirect to verify page if email not verified (when required)
   if (requireEmailVerification && !authState.isEmailVerified) {
     return <Navigate to="/verify" replace />
+  }
+
+  // Admin bypass: admins do not need agreements and should not see user agreement/dashboard pages
+  if (authState.isAdmin) {
+    if (location.pathname === '/agreement' || location.pathname === '/dashboard') {
+      return <Navigate to="/admin/dashboard" replace />
+    }
+    // Otherwise allow access without enforcing agreement
+    return <>{children}</>
   }
 
   // Redirect to agreement page if agreement not signed (when required)

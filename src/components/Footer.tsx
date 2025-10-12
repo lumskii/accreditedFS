@@ -35,7 +35,7 @@ const Footer: React.FC = () => {
               <li className="text-sm">
                 <strong>Service Area:</strong><br />
                 Nation wide<br />
-                Arizon, Texas, California, New York,<br />
+                Arizona, Texas, California, New York,<br />
                 & surrounding areas
               </li>
               <li className="text-sm">
