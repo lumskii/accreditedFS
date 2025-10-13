@@ -534,8 +534,9 @@ const Dashboard: React.FC = () => {
                             credentials: 'include'
                           })
                           if (!resp.ok) {
-                            const j = await resp.json().catch(() => ({}))
-                            throw new Error(j?.error || 'Failed to open portal')
+                            const j = await resp.json().catch(() => ({} as any))
+                            const msg = j?.details ? `${j.error || 'Failed to open portal'}: ${j.details}` : (j?.error || 'Failed to open portal')
+                            throw new Error(msg)
                           }
                           const { url } = await resp.json()
                           if (url) window.location.href = url
@@ -714,8 +715,9 @@ const Dashboard: React.FC = () => {
                                   credentials: 'include'
                                 })
                                 if (!resp.ok) {
-                                  const j = await resp.json().catch(() => ({}))
-                                  throw new Error(j?.error || 'Failed to open portal')
+                                  const j = await resp.json().catch(() => ({} as any))
+                                  const msg = j?.details ? `${j.error || 'Failed to open portal'}: ${j.details}` : (j?.error || 'Failed to open portal')
+                                  throw new Error(msg)
                                 }
                                 const { url } = await resp.json()
                                 if (url) window.location.href = url

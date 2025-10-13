@@ -38,29 +38,65 @@ export default async function handler(req, res) {
     if (!admin.apps.length) {
       const required = ['VITE_FIREBASE_PROJECT_ID','VITE_FIREBASE_CLIENT_EMAIL','VITE_FIREBASE_PRIVATE_KEY','VITE_FIREBASE_DATABASE_URL']
       const missing = required.filter(k => !process.env[k])
-      if (missing.length) return res.status(500).json({ error: 'Firebase not configured', missing })
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-        databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
-      })
+      if (missing.length) return res.status(500).json({ error: 'Firebase not configured', details: `Missing: ${missing.join(', ')}`, type: 'FIREBASE_ENV_MISSING' })
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+            clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
+            privateKey: (process.env.VITE_FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+          }),
+          databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+        })
+      } catch (firebaseError) {
+        console.error('Firebase Admin initialization failed:', firebaseError)
+        return res.status(500).json({ error: 'Firebase Admin initialization failed', details: firebaseError.message, type: 'FIREBASE_INIT_ERROR' })
+      }
     }
     const decoded = await admin.auth().verifyIdToken(idToken)
     const uid = decoded.uid
 
     // Init Stripe
-    if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ error: 'Stripe not configured' })
+    if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ error: 'Stripe not configured', type: 'STRIPE_ENV_MISSING' })
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-    // Fetch user to get customerId
+    // Fetch user to get or create customerId
     const db = admin.database()
-    const userSnap = await db.ref(`users/${uid}`).get()
+    const userRef = db.ref(`users/${uid}`)
+    const userSnap = await userRef.get()
     const userData = userSnap.exists() ? userSnap.val() : {}
-    const customerId = userData?.stripe?.customerId
-    if (!customerId) return res.status(400).json({ error: 'No Stripe customer linked' })
+
+    let customerId = userData?.stripe?.customerId
+    const email = userData?.email || decoded?.email
+
+    if (!customerId) {
+      // Try to find existing Stripe customer by metadata uid first, then by email
+      try {
+        const searchByUid = await stripe.customers.search({ query: `metadata['uid']:'${uid}'` })
+        if (searchByUid.data.length > 0) {
+          customerId = searchByUid.data[0].id
+        }
+      } catch (e) {
+        // Ignore search errors, continue to email lookup
+      }
+      if (!customerId && email) {
+        try {
+          const searchByEmail = await stripe.customers.search({ query: `email:'${email}'` })
+          if (searchByEmail.data.length > 0) {
+            customerId = searchByEmail.data[0].id
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      // If still not found, create a new customer
+      if (!customerId) {
+        const created = await stripe.customers.create({ email: email || undefined, metadata: { uid } })
+        customerId = created.id
+      }
+      // Persist under users/{uid}/stripe/customerId without overwriting other stripe fields
+      await db.ref(`users/${uid}/stripe`).update({ customerId })
+    }
 
     const returnUrl = (allowedOrigins.includes(origin) ? origin : 'https://accreditedfs.com') + '/dashboard'
     const session = await stripe.billingPortal.sessions.create({
@@ -71,6 +107,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: session.url })
   } catch (err) {
     console.error('Create portal session failed:', err)
-    return res.status(500).json({ error: 'Failed to create portal session', details: err.message })
+    // Attempt to extract Stripe error details if present
+    const details = err?.message || 'Unknown error'
+    const type = err?.type || 'UNKNOWN_ERROR'
+    return res.status(500).json({ error: 'Failed to create portal session', details, type })
   }
 }
