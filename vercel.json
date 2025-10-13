@@ -26,6 +26,9 @@
     },
     "api/upload-blob.js": {
       "maxDuration": 15
+    },
+    "api/delete-upload.js": {
+      "maxDuration": 10
     }
   },
   "headers": [

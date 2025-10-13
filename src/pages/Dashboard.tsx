@@ -113,6 +113,16 @@ const Dashboard: React.FC = () => {
   const [uploads, setUploads] = useState<Array<{name: string, url: string, uploadedAt: string}>>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const MAX_MB = 20
+  const ACCEPTED_TYPES = [
+    'image/',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain'
+  ]
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -291,6 +301,17 @@ const Dashboard: React.FC = () => {
   const handleUploadFiles = async (files: FileList | File[]) => {
     const arr = Array.from(files)
     for (const f of arr) {
+      // Validate type
+      const isAccepted = ACCEPTED_TYPES.some(t => t.endsWith('/') ? (f.type || '').startsWith(t) : (f.type || '') === t)
+      if (!isAccepted) {
+        setUploadError(`Unsupported file type: ${f.type || 'unknown'}. Allowed: images, PDF, Word, Excel, text.`)
+        continue
+      }
+      // Validate size
+      if (f.size > MAX_MB * 1024 * 1024) {
+        setUploadError(`File too large: ${(f.size / (1024*1024)).toFixed(1)}MB. Max allowed is ${MAX_MB}MB.`)
+        continue
+      }
       // sequential uploads to keep UI simple; can be parallelized later
       // swallow individual errors but surface last one
       await handleUpload(f)
@@ -686,6 +707,7 @@ const Dashboard: React.FC = () => {
                   />
                   {uploading ? 'Uploading...' : 'Upload Document'}
                 </label>
+                <span className="text-xs text-gray-500">Max {MAX_MB}MB • Images, PDF, Word, Excel, Text</span>
               </div>
               {uploads.length > 0 && (
                 <ul className="mt-4 space-y-2">

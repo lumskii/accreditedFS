@@ -55,6 +55,7 @@ const AdminDashboard: React.FC = () => {
     itemsRemoved: ''
   })
   const [userUploads, setUserUploads] = useState<Array<{name: string, url: string, uploadedAt?: string}>>([])
+  const [deletingUploadKey, setDeletingUploadKey] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'disputes' | 'settings'>('overview')
   
   const navigate = useNavigate()
@@ -209,8 +210,11 @@ const AdminDashboard: React.FC = () => {
         const { database } = await import('../firebase')
         const snap = await get(ref(database, `users/${user.uid}/uploads`))
         if (snap.exists()) {
-          const val = snap.val()
-          const arr = Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {})
+          const val = snap.val() as any
+          // keep keys alongside values for deletion
+          const arr = Array.isArray(val)
+            ? (val.map((v: any, idx: number) => ({ key: String(idx), ...(v || {}) })).filter((v: any) => !!v.name && !!v.url))
+            : Object.entries(val || {}).map(([k, v]: any) => ({ key: k, ...(v || {}) }))
           setUserUploads(arr as any)
         } else {
           setUserUploads([])
@@ -220,6 +224,53 @@ const AdminDashboard: React.FC = () => {
         setUserUploads([])
       }
     })()
+  }
+
+  const deleteUserUpload = async (item: any) => {
+    if (!selectedUser) return
+    try {
+      setDeletingUploadKey(item.key)
+      const { getAuth } = await import('firebase/auth')
+      const app = (await import('../firebase')).default
+      const auth = getAuth(app)
+      const current = auth.currentUser
+      if (!current) throw new Error('Not authenticated')
+      const idToken = await current.getIdToken()
+
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/delete-upload`
+        : `/api/delete-upload`
+
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ userId: selectedUser.uid, uploadKey: item.key, url: item.url })
+      })
+      if (!resp.ok) {
+        const j = await resp.json().catch(() => ({}))
+        throw new Error(j?.error || 'Delete failed')
+      }
+      setUserUploads(prev => prev.filter((u: any) => u.key !== item.key))
+    } catch (e) {
+      console.error('Delete upload failed:', e)
+      alert((e as any).message || 'Failed to delete')
+    } finally {
+      setDeletingUploadKey(null)
+    }
   }
 
   const saveUserProgress = async () => {
@@ -591,11 +642,20 @@ const AdminDashboard: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">User Documents</label>
                   {userUploads.length > 0 ? (
-                    <ul className="space-y-2 max-h-32 overflow-auto border rounded-md p-2">
-                      {userUploads.map((u, idx) => (
-                        <li key={idx} className="flex items-center justify-between text-sm">
+                    <ul className="space-y-2 max-h-40 overflow-auto border rounded-md p-2">
+                      {userUploads.map((u: any) => (
+                        <li key={u.key} className="flex items-center justify-between text-sm">
                           <span className="text-gray-700 truncate mr-2">{u.name}</span>
-                          <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
+                          <div className="flex items-center space-x-3">
+                            <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
+                            <button
+                              onClick={() => deleteUserUpload(u)}
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                              disabled={deletingUploadKey === u.key}
+                            >
+                              {deletingUploadKey === u.key ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
