@@ -72,11 +72,47 @@ interface DashboardData {
   agreement: { agreed: boolean }
 }
 
+// Helper to derive milestones from dashboard data and optional uploads
+function deriveMilestones(data: DashboardData, uploads: Array<{name: string, url: string, uploadedAt: string}> = []) {
+  const ms: Array<{ title: string; completed: boolean; date?: string }> = []
+  const prog = data.progress || ({} as any)
+  const score = prog.creditScore || {}
+  const current = typeof score.current === 'number' ? score.current : null
+  const initial = typeof score.initial === 'number' ? score.initial : null
+  // Account & agreement milestones
+  ms.push({ title: 'Account Created', completed: !!data.user?.joinDate, date: data.user?.joinDate })
+  ms.push({ title: 'Email Verified', completed: !!data.user?.emailVerified })
+  ms.push({ title: 'Agreement Signed', completed: !!data.agreement?.agreed })
+  // Dispute milestones
+  ms.push({ title: 'First Dispute Submitted', completed: (prog.disputesSubmitted || 0) > 0 })
+  ms.push({ title: 'First Item Removed', completed: (prog.itemsRemoved || 0) > 0 })
+  // Score improvement milestones
+  if (current != null && initial != null) {
+    const delta = current - initial
+    ms.push({ title: '+25 Points Achieved', completed: delta >= 25 })
+    ms.push({ title: '+50 Points Achieved', completed: delta >= 50 })
+  } else {
+    ms.push({ title: '+25 Points Achieved', completed: false })
+    ms.push({ title: '+50 Points Achieved', completed: false })
+  }
+  if (current != null && (score.goal || null)) {
+    ms.push({ title: 'Target Score Reached', completed: current >= (score.goal as number) })
+  } else {
+    ms.push({ title: 'Target Score Reached', completed: false })
+  }
+  // Document uploads
+  ms.push({ title: 'Documents Uploaded', completed: uploads.length > 0, date: uploads[0]?.uploadedAt })
+  return ms
+}
+
 const Dashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress' | 'agreements'>('overview')
+  const [uploads, setUploads] = useState<Array<{name: string, url: string, uploadedAt: string}>>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -163,6 +199,21 @@ const Dashboard: React.FC = () => {
         const data = await response.json()
         console.log('Dashboard data received:', Object.keys(data))
         setDashboardData(data)
+        // Load uploads from RTDB
+        try {
+          const { ref, get } = await import('firebase/database')
+          const { database } = await import('../firebase')
+          const upSnap = await get(ref(database, `users/${user.uid}/uploads`))
+          if (upSnap.exists()) {
+            const val = upSnap.val()
+            const arr = Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {})
+            setUploads(arr as any)
+          } else {
+            setUploads([])
+          }
+        } catch (e) {
+          console.warn('Failed to load uploads:', e)
+        }
       } catch (err: any) {
         console.error('Dashboard fetch error:', err)
         setError(err.message)
@@ -173,6 +224,37 @@ const Dashboard: React.FC = () => {
 
     fetchDashboardData()
   }, [navigate])
+
+  // Handle document upload
+  const handleUpload = async (file: File) => {
+    try {
+      setUploading(true)
+      setUploadError(null)
+      const [{ getAuth }, { ref: dbRef, push, set: dbSet }, { storage, database }, { ref: sRef, uploadBytes, getDownloadURL }] = await Promise.all([
+        import('firebase/auth'),
+        import('firebase/database'),
+        import('../firebase'),
+        import('firebase/storage')
+      ])
+      const app = (await import('../firebase')).default
+      const auth = getAuth(app)
+      const user = auth.currentUser
+      if (!user) throw new Error('Not authenticated')
+      const path = `users/${user.uid}/docs/${Date.now()}_${file.name}`
+      const fileRef = sRef(storage, path)
+      await uploadBytes(fileRef, file)
+      const url = await getDownloadURL(fileRef)
+      const meta = { name: file.name, url, uploadedAt: new Date().toISOString() }
+      const nodeRef = dbRef(database, `users/${user.uid}/uploads`)
+      const newRef = push(nodeRef)
+      await dbSet(newRef, meta)
+      setUploads(prev => [meta, ...prev])
+    } catch (e: any) {
+      setUploadError(e.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -539,20 +621,55 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Documents Upload */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
+              {uploadError && (
+                <div className="mb-3 text-sm text-red-600">{uploadError}</div>
+              )}
+              <div className="flex items-center space-x-3">
+                <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) handleUpload(f)
+                      e.currentTarget.value = ''
+                    }}
+                  />
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </label>
+              </div>
+              {uploads.length > 0 && (
+                <ul className="mt-4 space-y-2">
+                  {uploads.slice(0, 5).map((u, idx) => (
+                    <li key={idx} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 truncate mr-2">{u.name}</span>
+                      <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* Milestones */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Milestones</h3>
               {(() => {
-                // Normalize milestones: handle undefined, array, or object map
-                const raw = dashboardData.progress.milestones as any
-                let milestonesArr: Array<any> = []
-                if (Array.isArray(raw)) {
-                  milestonesArr = raw.filter(Boolean)
-                } else if (raw && typeof raw === 'object') {
-                  milestonesArr = Object.values(raw)
-                } else {
-                  milestonesArr = []
-                }
+                const derived = deriveMilestones(dashboardData, uploads)
+                // Merge with backend milestones if present
+                const raw = (dashboardData.progress as any).milestones
+                let merged: Array<any> = []
+                if (Array.isArray(raw)) merged = [...raw.filter(Boolean), ...derived]
+                else if (raw && typeof raw === 'object') merged = [...Object.values(raw), ...derived]
+                else merged = derived
+                const unique = new Map<string, any>()
+                merged.forEach(m => {
+                  const key = m.title
+                  if (!unique.has(key) || (m.completed && !unique.get(key)?.completed)) unique.set(key, m)
+                })
+                const milestonesArr = Array.from(unique.values())
                 return milestonesArr.length > 0 ? (
                 <div className="space-y-3">
                   {milestonesArr.map((milestone, index) => (

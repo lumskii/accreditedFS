@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
 import { getAnalytics, isSupported } from 'firebase/analytics'
+import { getStorage } from 'firebase/storage'
 
 // Firebase configuration loaded from Vite environment variables.
 // See .env.example for the required variables.
@@ -19,6 +20,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 export const database = getDatabase(app)
+export const storage = getStorage(app)
 
 export async function getAppAnalytics() {
   if (await isSupported()) {
