@@ -255,6 +255,14 @@ const Dashboard: React.FC = () => {
       setUploading(false)
     }
   }
+  const handleUploadFiles = async (files: FileList | File[]) => {
+    const arr = Array.from(files)
+    for (const f of arr) {
+      // sequential uploads to keep UI simple; can be parallelized later
+      // swallow individual errors but surface last one
+      await handleUpload(f)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -631,10 +639,15 @@ const Dashboard: React.FC = () => {
                 <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer">
                   <input
                     type="file"
+                    multiple
+                    // Allow images and common document types; leaving off accept would allow any file
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
                     className="hidden"
                     onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) handleUpload(f)
+                      const list = e.target.files
+                      if (list && list.length) {
+                        handleUploadFiles(list)
+                      }
                       e.currentTarget.value = ''
                     }}
                   />

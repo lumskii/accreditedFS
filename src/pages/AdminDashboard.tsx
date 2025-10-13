@@ -54,6 +54,7 @@ const AdminDashboard: React.FC = () => {
     disputesResolved: '',
     itemsRemoved: ''
   })
+  const [userUploads, setUserUploads] = useState<Array<{name: string, url: string, uploadedAt?: string}>>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'disputes' | 'settings'>('overview')
   
   const navigate = useNavigate()
@@ -201,6 +202,24 @@ const AdminDashboard: React.FC = () => {
       itemsRemoved: user.progress?.itemsRemoved?.toString() || '0'
     })
     setEditingProgress(true)
+    // Load uploads for this user
+    ;(async () => {
+      try {
+        const { ref, get } = await import('firebase/database')
+        const { database } = await import('../firebase')
+        const snap = await get(ref(database, `users/${user.uid}/uploads`))
+        if (snap.exists()) {
+          const val = snap.val()
+          const arr = Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {})
+          setUserUploads(arr as any)
+        } else {
+          setUserUploads([])
+        }
+      } catch (e) {
+        console.warn('Failed to load user uploads:', e)
+        setUserUploads([])
+      }
+    })()
   }
 
   const saveUserProgress = async () => {
@@ -568,6 +587,23 @@ const AdminDashboard: React.FC = () => {
               </div>
               
               <div className="space-y-4">
+                {/* User uploads preview */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">User Documents</label>
+                  {userUploads.length > 0 ? (
+                    <ul className="space-y-2 max-h-32 overflow-auto border rounded-md p-2">
+                      {userUploads.map((u, idx) => (
+                        <li key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-700 truncate mr-2">{u.name}</span>
+                          <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No documents uploaded</p>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Credit Scores</label>
                   <div className="grid grid-cols-3 gap-2">
