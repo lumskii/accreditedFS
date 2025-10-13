@@ -113,6 +113,7 @@ const Dashboard: React.FC = () => {
   const [uploads, setUploads] = useState<Array<{name: string, url: string, uploadedAt: string}>>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [showAllUploads, setShowAllUploads] = useState(false)
   const MAX_MB = 20
   const ACCEPTED_TYPES = [
     'image/',
@@ -291,7 +292,20 @@ const Dashboard: React.FC = () => {
       const nodeRef = dbRef(database, `users/${user.uid}/uploads`)
       const newRef = push(nodeRef)
       await dbSet(newRef, meta)
-      setUploads(prev => [meta, ...prev])
+      // Re-fetch to ensure consistency (covers any rule/latency issues)
+      try {
+        const { ref: rRef, get } = await import('firebase/database')
+        const upSnap = await get(rRef(database, `users/${user.uid}/uploads`))
+        if (upSnap.exists()) {
+          const val = upSnap.val()
+          const arr = Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {})
+          setUploads(arr as any)
+        } else {
+          setUploads([meta])
+        }
+      } catch {
+        setUploads(prev => [meta, ...prev])
+      }
     } catch (e: any) {
       setUploadError(e.message || 'Upload failed')
     } finally {
@@ -710,14 +724,25 @@ const Dashboard: React.FC = () => {
                 <span className="text-xs text-gray-500">Max {MAX_MB}MB • Images, PDF, Word, Excel, Text</span>
               </div>
               {uploads.length > 0 && (
-                <ul className="mt-4 space-y-2">
-                  {uploads.slice(0, 5).map((u, idx) => (
-                    <li key={idx} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700 truncate mr-2">{u.name}</span>
-                      <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <div className="mt-2 text-xs text-gray-500">{uploads.length} document{uploads.length === 1 ? '' : 's'}</div>
+                  <ul className="mt-2 space-y-2">
+                    {(showAllUploads ? uploads : uploads.slice(0, 5)).map((u, idx) => (
+                      <li key={idx} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700 truncate mr-2">{u.name}</span>
+                        <a className="text-blue-600 hover:text-blue-800" href={u.url} target="_blank" rel="noreferrer">View</a>
+                      </li>
+                    ))}
+                  </ul>
+                  {uploads.length > 5 && (
+                    <button
+                      onClick={() => setShowAllUploads(!showAllUploads)}
+                      className="mt-2 text-sm text-blue-700 hover:text-blue-900"
+                    >
+                      {showAllUploads ? 'Show less' : `Show all (${uploads.length})`}
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
