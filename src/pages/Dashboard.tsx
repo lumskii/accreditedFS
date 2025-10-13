@@ -542,9 +542,20 @@ const Dashboard: React.FC = () => {
             {/* Milestones */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Milestones</h3>
-              {dashboardData.progress.milestones.length > 0 ? (
+              {(() => {
+                // Normalize milestones: handle undefined, array, or object map
+                const raw = dashboardData.progress.milestones as any
+                let milestonesArr: Array<any> = []
+                if (Array.isArray(raw)) {
+                  milestonesArr = raw.filter(Boolean)
+                } else if (raw && typeof raw === 'object') {
+                  milestonesArr = Object.values(raw)
+                } else {
+                  milestonesArr = []
+                }
+                return milestonesArr.length > 0 ? (
                 <div className="space-y-3">
-                  {dashboardData.progress.milestones.map((milestone, index) => (
+                  {milestonesArr.map((milestone, index) => (
                     <div key={index} className="flex items-center p-3 border border-gray-200 rounded-lg">
                       <div className={`p-2 rounded-full mr-3 ${
                         milestone.completed ? 'bg-green-100' : 'bg-gray-100'
@@ -576,7 +587,8 @@ const Dashboard: React.FC = () => {
                     Milestones will appear here as we work on your credit repair
                   </p>
                 </div>
-              )}
+              )
+              })()}
             </div>
           </div>
         )}
