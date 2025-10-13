@@ -23,6 +23,9 @@
     },
     "api/admin-users.js": {
       "maxDuration": 15
+    },
+    "api/upload-blob.js": {
+      "maxDuration": 15
     }
   },
   "headers": [

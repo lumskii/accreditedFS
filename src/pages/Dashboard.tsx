@@ -252,44 +252,29 @@ const Dashboard: React.FC = () => {
         ? envApiBase
         : (isDev ? '' : defaultProdApi)
 
-      // Get upload URL from backend
+      // Upload file to backend (server uploads to Vercel Blob)
       const token = await user.getIdToken()
-      const urlEndpoint = resolvedApiBase
-        ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-upload-url?filename=${encodeURIComponent(file.name)}`
-        : `/api/create-upload-url?filename=${encodeURIComponent(file.name)}`
-      const urlResp = await fetch(urlEndpoint, {
+      const uploadEndpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/upload-blob?filename=${encodeURIComponent(file.name)}`
+        : `/api/upload-blob?filename=${encodeURIComponent(file.name)}`
+      const putResp = await fetch(uploadEndpoint, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file,
         credentials: 'include'
       })
-      if (!urlResp.ok) {
+      if (!putResp.ok) {
         let detail = ''
         try {
-          const errJson = await urlResp.json()
+          const errJson = await putResp.json()
           detail = errJson?.error ? `${errJson.error}${errJson.details ? `: ${errJson.details}` : ''}` : ''
         } catch {}
-        throw new Error(detail || 'Failed to get upload URL')
+        throw new Error(detail || 'Upload failed')
       }
-  const { url: uploadUrl, token: blobToken } = await urlResp.json()
-
-      // Upload to Vercel Blob
-      const putResp = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-          ...(blobToken ? { 'x-vercel-blob-token': blobToken } : {})
-        }
-      })
-      if (!putResp.ok) throw new Error('Upload failed')
-      // Try Location header first, fall back to JSON body if provided by the Blob service
-      let publicUrl = putResp.headers.get('Location') || ''
-      if (!publicUrl) {
-        try {
-          const putJson = await putResp.json()
-          publicUrl = putJson?.url || ''
-        } catch {}
-      }
+      const { url: publicUrl } = await putResp.json()
       if (!publicUrl) throw new Error('Missing public URL after upload')
 
       const meta = { name: file.name, url: publicUrl, uploadedAt: new Date().toISOString() }
