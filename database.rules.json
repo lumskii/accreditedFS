@@ -9,7 +9,14 @@
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
-        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)"
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+        "uploads": {
+          "$uploadId": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+            ".validate": "newData.hasChildren(['name','url','uploadedAt']) && newData.child('name').isString() && newData.child('url').isString() && newData.child('uploadedAt').isString()"
+          }
+        }
       },
       ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true"
     },

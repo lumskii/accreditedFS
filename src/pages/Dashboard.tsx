@@ -230,21 +230,54 @@ const Dashboard: React.FC = () => {
     try {
       setUploading(true)
       setUploadError(null)
-      const [{ getAuth }, { ref: dbRef, push, set: dbSet }, { storage, database }, { ref: sRef, uploadBytes, getDownloadURL }] = await Promise.all([
+      const [{ getAuth }, { ref: dbRef, push, set: dbSet }] = await Promise.all([
         import('firebase/auth'),
-        import('firebase/database'),
-        import('../firebase'),
-        import('firebase/storage')
+        import('firebase/database')
       ])
       const app = (await import('../firebase')).default
+      const { database } = await import('../firebase')
       const auth = getAuth(app)
       const user = auth.currentUser
       if (!user) throw new Error('Not authenticated')
-      const path = `users/${user.uid}/docs/${Date.now()}_${file.name}`
-      const fileRef = sRef(storage, path)
-      await uploadBytes(fileRef, file)
-      const url = await getDownloadURL(fileRef)
-      const meta = { name: file.name, url, uploadedAt: new Date().toISOString() }
+
+      // Resolve API base (reuse same logic as other endpoints)
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
+      // Get upload URL from backend
+      const token = await user.getIdToken()
+      const urlEndpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-upload-url?filename=${encodeURIComponent(file.name)}`
+        : `/api/create-upload-url?filename=${encodeURIComponent(file.name)}`
+      const urlResp = await fetch(urlEndpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include'
+      })
+      if (!urlResp.ok) throw new Error('Failed to get upload URL')
+      const { url: uploadUrl, pathname } = await urlResp.json()
+
+      // Upload to Vercel Blob
+      const putResp = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' }
+      })
+      if (!putResp.ok) throw new Error('Upload failed')
+      // The resulting public URL can be built from pathname via https://<blob-domain>/{pathname}
+      // But generateUploadUrl usually returns a `url` for direct PUT, and the resulting GET URL is returned in Location header
+      const publicUrl = putResp.headers.get('Location') || (pathname ? `https://blob.vercel-storage.com/${pathname}` : '')
+      if (!publicUrl) throw new Error('Missing public URL after upload')
+
+      const meta = { name: file.name, url: publicUrl, uploadedAt: new Date().toISOString() }
       const nodeRef = dbRef(database, `users/${user.uid}/uploads`)
       const newRef = push(nodeRef)
       await dbSet(newRef, meta)
