@@ -36,6 +36,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Ensure Blob token exists in environment (Vercel sets this when the integration is installed)
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_URL
+    if (!blobToken) {
+      return res.status(500).json({
+        error: 'Vercel Blob not configured',
+        missing: ['BLOB_READ_WRITE_TOKEN'],
+        hint: 'Install Vercel Blob integration or set BLOB_READ_WRITE_TOKEN.'
+      })
+    }
+
     // Verify Firebase ID token
     const authHeader = req.headers.authorization || ''
     if (!authHeader.startsWith('Bearer ')) {
@@ -45,6 +55,15 @@ export default async function handler(req, res) {
 
     // Initialize Firebase Admin if needed
     if (!admin.apps.length) {
+      const required = ['VITE_FIREBASE_PROJECT_ID','VITE_FIREBASE_CLIENT_EMAIL','VITE_FIREBASE_PRIVATE_KEY','VITE_FIREBASE_DATABASE_URL']
+      const missing = required.filter(k => !process.env[k])
+      if (missing.length) {
+        return res.status(500).json({
+          error: 'Firebase Admin not configured',
+          missing,
+          hint: 'Set Firebase Admin env vars in Project Settings.'
+        })
+      }
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: process.env.VITE_FIREBASE_PROJECT_ID,
@@ -74,7 +93,7 @@ export default async function handler(req, res) {
       ]
     })
     // Return whatever the SDK provides (usually { url, token, pathname })
-    return res.status(200).json(result)
+    return res.status(200).json({ ...result, filename })
   } catch (error) {
     console.error('Failed to create upload URL:', error)
     return res.status(500).json({ error: 'Failed to create upload URL', details: error.message })
