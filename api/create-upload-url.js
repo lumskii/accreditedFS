@@ -36,13 +36,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Ensure Blob token exists in environment (Vercel sets this when the integration is installed)
+    // Ensure Vercel Blob token is available
     const blobToken = process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_URL
     if (!blobToken) {
       return res.status(500).json({
         error: 'Vercel Blob not configured',
         missing: ['BLOB_READ_WRITE_TOKEN'],
-        hint: 'Install Vercel Blob integration or set BLOB_READ_WRITE_TOKEN.'
+        hint: 'Install Vercel Blob integration or set BLOB_READ_WRITE_TOKEN and redeploy.'
       })
     }
 

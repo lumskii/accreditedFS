@@ -262,19 +262,34 @@ const Dashboard: React.FC = () => {
         headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include'
       })
-      if (!urlResp.ok) throw new Error('Failed to get upload URL')
-  const { url: uploadUrl } = await urlResp.json()
+      if (!urlResp.ok) {
+        let detail = ''
+        try {
+          const errJson = await urlResp.json()
+          detail = errJson?.error ? `${errJson.error}${errJson.details ? `: ${errJson.details}` : ''}` : ''
+        } catch {}
+        throw new Error(detail || 'Failed to get upload URL')
+      }
+  const { url: uploadUrl, token: blobToken } = await urlResp.json()
 
       // Upload to Vercel Blob
       const putResp = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        headers: { 'Content-Type': file.type || 'application/octet-stream' }
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          ...(blobToken ? { 'x-vercel-blob-token': blobToken } : {})
+        }
       })
       if (!putResp.ok) throw new Error('Upload failed')
-      // The resulting public URL can be built from pathname via https://<blob-domain>/{pathname}
-      // But generateUploadUrl usually returns a `url` for direct PUT, and the resulting GET URL is returned in Location header
-  const publicUrl = putResp.headers.get('Location') || ''
+      // Try Location header first, fall back to JSON body if provided by the Blob service
+      let publicUrl = putResp.headers.get('Location') || ''
+      if (!publicUrl) {
+        try {
+          const putJson = await putResp.json()
+          publicUrl = putJson?.url || ''
+        } catch {}
+      }
       if (!publicUrl) throw new Error('Missing public URL after upload')
 
       const meta = { name: file.name, url: publicUrl, uploadedAt: new Date().toISOString() }
