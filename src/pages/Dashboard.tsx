@@ -263,7 +263,7 @@ const Dashboard: React.FC = () => {
         credentials: 'include'
       })
       if (!urlResp.ok) throw new Error('Failed to get upload URL')
-      const { url: uploadUrl, pathname } = await urlResp.json()
+  const { url: uploadUrl } = await urlResp.json()
 
       // Upload to Vercel Blob
       const putResp = await fetch(uploadUrl, {
@@ -274,7 +274,7 @@ const Dashboard: React.FC = () => {
       if (!putResp.ok) throw new Error('Upload failed')
       // The resulting public URL can be built from pathname via https://<blob-domain>/{pathname}
       // But generateUploadUrl usually returns a `url` for direct PUT, and the resulting GET URL is returned in Location header
-      const publicUrl = putResp.headers.get('Location') || (pathname ? `https://blob.vercel-storage.com/${pathname}` : '')
+  const publicUrl = putResp.headers.get('Location') || ''
       if (!publicUrl) throw new Error('Missing public URL after upload')
 
       const meta = { name: file.name, url: publicUrl, uploadedAt: new Date().toISOString() }

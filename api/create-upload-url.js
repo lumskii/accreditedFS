@@ -60,7 +60,8 @@ export default async function handler(req, res) {
     const filename = (req.query && req.query.filename) || 'upload.bin'
     const result = await generateUploadUrl({
       access: 'public',
-      pathname: `users/${uid}/docs/${Date.now()}_${filename}`,
+      // Some versions use "pathname", others use "filename"; keep it as filename for broader compatibility
+      filename: `users/${uid}/docs/${Date.now()}_${filename}`,
       allowedContentTypes: [
         'image/*',
         'application/pdf',
