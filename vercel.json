@@ -29,6 +29,9 @@
     },
     "api/delete-upload.js": {
       "maxDuration": 10
+    },
+    "api/create-portal-session.js": {
+      "maxDuration": 10
     }
   },
   "headers": [

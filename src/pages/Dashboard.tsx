@@ -114,6 +114,8 @@ const Dashboard: React.FC = () => {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showAllUploads, setShowAllUploads] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
+  const [portalError, setPortalError] = useState<string | null>(null)
   const MAX_MB = 20
   const ACCEPTED_TYPES = [
     'image/',
@@ -498,11 +500,59 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <button className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900">
-                      Manage Plan
+                    <button
+                      className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900 disabled:opacity-50"
+                      disabled={portalLoading}
+                      onClick={async () => {
+                        try {
+                          setPortalError(null)
+                          setPortalLoading(true)
+                          const { getAuth } = await import('firebase/auth')
+                          const app = (await import('../firebase')).default
+                          const auth = getAuth(app)
+                          const user = auth.currentUser
+                          if (!user) throw new Error('Not authenticated')
+                          const idToken = await user.getIdToken()
+
+                          const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+                          const isDev = import.meta.env.MODE === 'development'
+                          const defaultProdApi = 'https://api.accreditedfs.com'
+                          const isBrowser = typeof window !== 'undefined'
+                          const currentOrigin = isBrowser ? window.location.origin : ''
+                          const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+                          const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+                          const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+                            ? envApiBase
+                            : (isDev ? '' : defaultProdApi)
+
+                          const endpoint = resolvedApiBase
+                            ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-portal-session`
+                            : `/api/create-portal-session`
+                          const resp = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${idToken}` },
+                            credentials: 'include'
+                          })
+                          if (!resp.ok) {
+                            const j = await resp.json().catch(() => ({}))
+                            throw new Error(j?.error || 'Failed to open portal')
+                          }
+                          const { url } = await resp.json()
+                          if (url) window.location.href = url
+                        } catch (e: any) {
+                          setPortalError(e.message || 'Failed to open portal')
+                        } finally {
+                          setPortalLoading(false)
+                        }
+                      }}
+                    >
+                      {portalLoading ? 'Opening…' : 'Manage Plan'}
                     </button>
                   </div>
                 </div>
+                {portalError && (
+                  <p className="text-sm text-red-600 mt-3">{portalError}</p>
+                )}
               </div>
             )}
 
@@ -630,8 +680,53 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900">{formatCurrency(subscription.amount)}/month</p>
-                          <button className="text-sm text-blue-600 hover:text-blue-800 mt-1">
-                            Manage
+                          <button
+                            className="text-sm text-blue-600 hover:text-blue-800 mt-1 disabled:opacity-50"
+                            disabled={portalLoading}
+                            onClick={async () => {
+                              // Reuse the same portal flow
+                              const btn = document.querySelector('button') // no-op placeholder to avoid duplication
+                              try {
+                                setPortalError(null)
+                                setPortalLoading(true)
+                                const { getAuth } = await import('firebase/auth')
+                                const app = (await import('../firebase')).default
+                                const auth = getAuth(app)
+                                const user = auth.currentUser
+                                if (!user) throw new Error('Not authenticated')
+                                const idToken = await user.getIdToken()
+                                const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+                                const isDev = import.meta.env.MODE === 'development'
+                                const defaultProdApi = 'https://api.accreditedfs.com'
+                                const isBrowser = typeof window !== 'undefined'
+                                const currentOrigin = isBrowser ? window.location.origin : ''
+                                const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+                                const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+                                const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+                                  ? envApiBase
+                                  : (isDev ? '' : defaultProdApi)
+                                const endpoint = resolvedApiBase
+                                  ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-portal-session`
+                                  : `/api/create-portal-session`
+                                const resp = await fetch(endpoint, {
+                                  method: 'POST',
+                                  headers: { 'Authorization': `Bearer ${idToken}` },
+                                  credentials: 'include'
+                                })
+                                if (!resp.ok) {
+                                  const j = await resp.json().catch(() => ({}))
+                                  throw new Error(j?.error || 'Failed to open portal')
+                                }
+                                const { url } = await resp.json()
+                                if (url) window.location.href = url
+                              } catch (e: any) {
+                                setPortalError(e.message || 'Failed to open portal')
+                              } finally {
+                                setPortalLoading(false)
+                              }
+                            }}
+                          >
+                            {portalLoading ? 'Opening…' : 'Manage'}
                           </button>
                         </div>
                       </div>
