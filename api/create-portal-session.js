@@ -99,9 +99,11 @@ export default async function handler(req, res) {
     }
 
     const returnUrl = (allowedOrigins.includes(origin) ? origin : 'https://accreditedfs.com') + '/dashboard'
+    const configId = process.env.STRIPE_PORTAL_CONFIGURATION_ID || undefined
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: returnUrl
+      return_url: returnUrl,
+      ...(configId ? { configuration: configId } : {})
     })
 
     return res.status(200).json({ url: session.url })
