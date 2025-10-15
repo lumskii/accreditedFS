@@ -11,6 +11,7 @@ const Testimonials = React.lazy(() => import('./components/Testimonials'))
 const About = React.lazy(() => import('./components/About'))
 const BookingCTA = React.lazy(() => import('./components/BookingCTA'))
 import Footer from './components/Footer'
+import Seo from './components/Seo'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
@@ -50,6 +51,7 @@ export function App() {
   return (
     <BrowserRouter>
       <div className="flex flex-col min-h-screen w-full bg-white">
+        <Seo />
         {/* Skip Navigation Link */}
         <a 
           href="#main-content" 

@@ -1,21 +1,21 @@
 User-agent: *
-Allow: /
-
-# Sitemap location
 Sitemap: https://accreditedfs.com/sitemap.xml
 
-# Disallow admin and API endpoints
+# Block non-public/protected routes and API
 Disallow: /admin/
 Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /payment-mode
+Disallow: /verify
+Disallow: /verify-email
+Disallow: /agreement
+Disallow: /agreement-view
+Disallow: /checkout
+Disallow: /success
+Disallow: /cancel
+Disallow: /dashboard
 
-# Allow specific important paths
+# Allow assets and root
+Allow: /$
 Allow: /assets/
-Allow: /*.css
-Allow: /*.js
-Allow: /*.png
-Allow: /*.jpg
-Allow: /*.svg
-Allow: /*.ico
-
-# Crawl delay (optional, helps manage server load)
-Crawl-delay: 1
