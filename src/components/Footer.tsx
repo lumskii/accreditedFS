@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Phone, Mail, Facebook, Instagram, Linkedin, MapPinIcon } from 'lucide-react'
 
 const Footer: React.FC = () => {
@@ -11,8 +12,8 @@ const Footer: React.FC = () => {
             <p className="mb-4">Helping individuals and families improve their credit scores and achieve financial freedom since 2018. Professional credit repair services with a 90-day money-back guarantee.</p>
             <p className="mb-4 text-sm">Serving residents with expert credit repair, dispute resolution, and financial education services.</p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-white transition-colors" aria-label="Follow us on Facebook"><Facebook size={20} /></a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors" aria-label="Connect with us on LinkedIn"><Linkedin size={20} /></a>
+              <a href="https://www.facebook.com/people/Accredited-FS/61582643819470/" className="text-gray-300 hover:text-white transition-colors" aria-label="Follow us on Facebook"><Facebook size={20} /></a>
+              <a href="https://www.linkedin.com/company/accreditedfs/" className="text-gray-300 hover:text-white transition-colors" aria-label="Connect with us on LinkedIn"><Linkedin size={20} /></a>
             </div>
           </div>
           <div>
@@ -34,9 +35,9 @@ const Footer: React.FC = () => {
               <li className="flex items-start"><MapPinIcon className="h-5 w-5 mr-3 mt-0.5" /> <span>101 N Colonado St, #131 <br /> Chandler, AZ 85244</span></li>
               <li className="text-sm">
                 <strong>Service Area:</strong><br />
-                Nation wide<br />
-                Arizona, Texas, California, New York,<br />
-                & surrounding areas
+                {/* Nation wide<br /> */}
+                Phoenix, Mesa, Chandler, Tempe, Scottsdale<br />
+                & surrounding areas in Arizona
               </li>
               <li className="text-sm">
                 <strong>Business Hours:</strong><br />
@@ -48,8 +49,8 @@ const Footer: React.FC = () => {
         <div className="border-t border-blue-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">&copy; {new Date().getFullYear()} Accredited Financial Services - Arizona Credit Repair Specialists. All rights reserved.</div>
           <div className="flex space-x-6">
-            <a href="#" className="hover:text-[#f0d541] transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-[#f0d541] transition-colors">Terms of Service</a>
+            <Link to="/privacy" className="hover:text-[#f0d541] transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-[#f0d541] transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

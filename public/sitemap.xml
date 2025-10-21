@@ -11,6 +11,22 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://accreditedfs.com/privacy</loc>
+    <lastmod>2025-10-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+
+  <!-- Terms of Service -->
+  <url>
+    <loc>https://accreditedfs.com/terms</loc>
+    <lastmod>2025-10-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
   
   <!-- Internal sections removed (hash links are not separate indexable URLs) -->
   

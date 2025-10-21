@@ -12,6 +12,7 @@ const About = React.lazy(() => import('./components/About'))
 const BookingCTA = React.lazy(() => import('./components/BookingCTA'))
 import Footer from './components/Footer'
 import Seo from './components/Seo'
+import ScrollToTop from './components/ScrollToTop'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
@@ -26,6 +27,8 @@ import Verify from './pages/Verify'
 import VerifyEmail from './pages/VerifyEmail'
 import PaymentMode from './pages/PaymentMode'
 import Dashboard from './pages/Dashboard'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 
 const Home: React.FC = () => (
   <main className="flex-grow" id="main-content">
@@ -52,6 +55,7 @@ export function App() {
     <BrowserRouter>
       <div className="flex flex-col min-h-screen w-full bg-white">
         <Seo />
+        <ScrollToTop />
         {/* Skip Navigation Link */}
         <a 
           href="#main-content" 
@@ -69,6 +73,8 @@ export function App() {
           <Route path="/payment-mode" element={<PaymentMode />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
