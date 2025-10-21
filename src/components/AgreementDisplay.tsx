@@ -11,18 +11,30 @@ interface PlanDetails {
   paymentType: 'upfront' | 'monthly'
 }
 
+interface UserProfile {
+  name: string
+  address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  email?: string
+}
+
 interface AgreementDisplayProps {
   planDetails?: PlanDetails | null
+  userProfile?: UserProfile | null
   showSignature?: boolean
   signedData?: {
     signedBy: string
     signedAt: number
+    signature?: string
   }
   className?: string
 }
 
 const AgreementDisplay: React.FC<AgreementDisplayProps> = ({ 
   planDetails, 
+  userProfile,
   showSignature = false, 
   signedData,
   className = ""
@@ -376,15 +388,33 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
             <div className="mb-6 space-y-3">
               <div className="flex items-center space-x-2">
                 <span className="font-semibold min-w-[120px]">Client Name:</span>
-                <div className="flex-1 border-b border-gray-400 h-6"></div>
+                {userProfile?.name ? (
+                  <div className="flex-1 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {userProfile.name}
+                  </div>
+                ) : (
+                  <div className="flex-1 border-b border-gray-400 h-6"></div>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold min-w-[120px]">Client Address:</span>
-                <div className="flex-1 border-b border-gray-400 h-6"></div>
+                {userProfile?.address ? (
+                  <div className="flex-1 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {userProfile.address}
+                  </div>
+                ) : (
+                  <div className="flex-1 border-b border-gray-400 h-6"></div>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold min-w-[120px]">City, State, ZIP:</span>
-                <div className="flex-1 border-b border-gray-400 h-6"></div>
+                {userProfile?.city && userProfile?.state && userProfile?.zipCode ? (
+                  <div className="flex-1 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {userProfile.city}, {userProfile.state} {userProfile.zipCode}
+                  </div>
+                ) : (
+                  <div className="flex-1 border-b border-gray-400 h-6"></div>
+                )}
               </div>
             </div>
 
@@ -430,15 +460,41 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
             <div className="border-t border-gray-300 pt-6 space-y-4">
               <div className="flex items-center space-x-4">
                 <span className="font-semibold min-w-[140px]">Client Signature:</span>
-                <div className="flex-1 border-b border-gray-400 h-8"></div>
+                {showSignature && signedData?.signature ? (
+                  <div className="flex-1 p-2 border border-gray-300 rounded bg-white">
+                    <img 
+                      src={signedData.signature} 
+                      alt="Client Signature" 
+                      className="max-h-16 max-w-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 border-b border-gray-400 h-8"></div>
+                )}
               </div>
               <div className="flex items-center space-x-4">
                 <span className="font-semibold min-w-[140px]">Date:</span>
-                <div className="w-40 border-b border-gray-400 h-8"></div>
+                {showSignature && signedData ? (
+                  <div className="w-40 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {formatDate(signedData.signedAt).split(' ')[0]}
+                  </div>
+                ) : (
+                  <div className="w-40 border-b border-gray-400 h-8"></div>
+                )}
               </div>
               <div className="flex items-center space-x-4">
                 <span className="font-semibold min-w-[140px]">Printed Name:</span>
-                <div className="flex-1 border-b border-gray-400 h-8"></div>
+                {showSignature && signedData ? (
+                  <div className="flex-1 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {signedData.signedBy}
+                  </div>
+                ) : userProfile?.name ? (
+                  <div className="flex-1 text-gray-900 font-medium border-b border-gray-400 pb-1">
+                    {userProfile.name}
+                  </div>
+                ) : (
+                  <div className="flex-1 border-b border-gray-400 h-8"></div>
+                )}
               </div>
             </div>
           </div>

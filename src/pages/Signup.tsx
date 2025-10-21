@@ -16,8 +16,62 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
+  const [zipCode, setZipCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Phone number formatting function
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
+    const phoneNumber = value.replace(/[^\d]/g, '')
+    
+    // Don't format if less than 3 digits
+    if (phoneNumber.length < 4) return phoneNumber
+    
+    // Format as (XXX) XXX-XXXX
+    if (phoneNumber.length < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    }
+    
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+  }
+
+  // Phone number validation function
+  const validatePhoneNumber = (phoneNumber: string) => {
+    // Remove all non-digit characters for validation
+    const digits = phoneNumber.replace(/[^\d]/g, '')
+    
+    // US phone numbers should have exactly 10 digits
+    if (digits.length !== 10) {
+      return 'Phone number must be 10 digits long'
+    }
+    
+    // Check for valid area code (first digit can't be 0 or 1)
+    if (digits[0] === '0' || digits[0] === '1') {
+      return 'Invalid area code'
+    }
+    
+    // Check for valid exchange code (fourth digit can't be 0 or 1)
+    if (digits[3] === '0' || digits[3] === '1') {
+      return 'Invalid phone number format'
+    }
+    
+    return null
+  }
+
+  // Handle phone number input change
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const formattedPhone = formatPhoneNumber(value)
+    
+    // Only update if the formatted length is 14 or less (to prevent over-typing)
+    if (formattedPhone.length <= 14) {
+      setPhone(formattedPhone)
+    }
+  }
 
   useEffect(() => {
     // If user is already logged in and verified, route to payment selection when plan is known
@@ -62,6 +116,38 @@ const Signup: React.FC = () => {
       return
     }
 
+    // Validate phone number format
+    const phoneError = validatePhoneNumber(phone)
+    if (phoneError) {
+      setError(phoneError)
+      setLoading(false)
+      return
+    }
+
+    if (!address.trim()) {
+      setError('Address is required')
+      setLoading(false)
+      return
+    }
+
+    if (!city.trim()) {
+      setError('City is required')
+      setLoading(false)
+      return
+    }
+
+    if (!state.trim()) {
+      setError('State is required')
+      setLoading(false)
+      return
+    }
+
+    if (!zipCode.trim()) {
+      setError('ZIP code is required')
+      setLoading(false)
+      return
+    }
+
     if (!email.trim()) {
       setError('Email is required')
       setLoading(false)
@@ -88,10 +174,15 @@ const Signup: React.FC = () => {
         // Update displayName
         await updateProfile(userCred.user, { displayName: name })
         
-        // Store basic profile in database
+        // Store extended profile in database
         await set(ref(database, `users/${userCred.user.uid}/profile`), {
           name,
           phone,
+          phoneDigits: phone.replace(/[^\d]/g, ''), // Store digits-only version for processing
+          address,
+          city,
+          state,
+          zipCode,
           email,
           createdAt: Date.now(),
           emailVerified: false
@@ -159,9 +250,44 @@ const Signup: React.FC = () => {
               />
               <input
                 type="tel"
-                placeholder="Phone *"
+                placeholder="Phone * (e.g., (555) 123-4567)"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={handlePhoneChange}
+                required
+                maxLength={14}
+                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <input
+                type="text"
+                placeholder="Address *"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="City *"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+                <input
+                  type="text"
+                  placeholder="State *"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  required
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="ZIP Code *"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
                 required
                 className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />

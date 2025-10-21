@@ -17,9 +17,19 @@ interface PlanDetails {
   paymentType: 'upfront' | 'monthly'
 }
 
+interface UserProfile {
+  name: string
+  address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  email?: string
+}
+
 interface SignedAgreementData {
   signedName: string
   signedAt: string
+  signature?: string
   planDetails: PlanDetails | null
   userAgent: string
   ipAddress: string
@@ -29,6 +39,7 @@ const AgreementView: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [agreementData, setAgreementData] = useState<SignedAgreementData | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const auth = getAuth(app);
@@ -48,6 +59,14 @@ const AgreementView: React.FC = () => {
             setAgreementData(snapshot.val());
           } else {
             setError("No signed agreement found");
+          }
+
+          // Fetch user profile data
+          const profileRef = ref(database, `users/${u.uid}/profile`);
+          const profileSnapshot = await get(profileRef);
+          
+          if (profileSnapshot.exists()) {
+            setUserProfile(profileSnapshot.val());
           }
         } catch (error) {
           console.error("Error fetching agreement:", error);
@@ -187,7 +206,7 @@ const AgreementView: React.FC = () => {
 
           {/* Agreement Content */}
           <div className="p-6">
-            <AgreementDisplay planDetails={agreementData.planDetails} />
+            <AgreementDisplay planDetails={agreementData.planDetails} userProfile={userProfile} />
           </div>
 
           {/* Signature Block - Show at bottom for print */}
@@ -196,6 +215,24 @@ const AgreementView: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Electronic Signature Verification
               </h3>
+              
+              {/* Digital Signature Display */}
+              {agreementData.signature && (
+                <div className="bg-white p-4 rounded-lg border border-gray-300 mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Digital Signature:</h4>
+                  <div className="border-2 border-gray-300 rounded-lg p-2 bg-gray-50 inline-block">
+                    <img 
+                      src={agreementData.signature} 
+                      alt="Digital Signature" 
+                      className="max-w-xs h-auto"
+                      style={{ maxHeight: '100px' }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Signature captured on {new Date(agreementData.signedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
               
               <div className="bg-white p-4 rounded-lg border border-gray-300 print:border-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -208,7 +245,7 @@ const AgreementView: React.FC = () => {
                   <div>
                     <p className="font-medium text-gray-700">Signature Details:</p>
                     <p>Date: {new Date(agreementData.signedAt).toLocaleString()}</p>
-                    <p>Method: Electronic Signature</p>
+                    <p>Method: {agreementData.signature ? 'Digital Signature' : 'Electronic Signature'}</p>
                     <p>Status: Verified and Binding</p>
                   </div>
                 </div>

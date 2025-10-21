@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import app, { database } from "../firebase";
 import { getAuth, sendEmailVerification, reload, onAuthStateChanged } from "firebase/auth";
@@ -6,7 +6,8 @@ import { ref, push, get, set } from "firebase/database";
 import Toast from "../components/Toast";
 import Spinner from "../components/Spinner";
 import AgreementDisplay from "../components/AgreementDisplay";
-import { CheckCircle } from "lucide-react";
+import SignaturePad, { SignaturePadRef } from "../components/SignaturePad";
+import { CheckCircle, RotateCcw } from "lucide-react";
 
 interface PlanDetails {
   id: number
@@ -18,11 +19,22 @@ interface PlanDetails {
   paymentType: 'upfront' | 'monthly'
 }
 
+interface UserProfile {
+  name: string
+  address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  email?: string
+}
+
 const Agreement: React.FC = () => {
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [signed, setSigned] = useState(false);
   const [signName, setSignName] = useState("");
+  const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -31,6 +43,7 @@ const Agreement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const auth = getAuth(app);
+  const signaturePadRef = useRef<SignaturePadRef>(null);
 
   // Plan definitions matching PricingSection.tsx
   const availablePlans: PlanDetails[] = [
@@ -67,6 +80,24 @@ const Agreement: React.FC = () => {
       
       if (u) {
         setSignName(u.displayName || u.email || "");
+        
+        // Fetch user profile data
+        try {
+          const profileSnap = await get(ref(database, `users/${u.uid}/profile`));
+          if (profileSnap.exists()) {
+            const profileData = profileSnap.val();
+            setUserProfile({
+              name: profileData.name || u.displayName || "",
+              address: profileData.address || "",
+              city: profileData.city || "",
+              state: profileData.state || "",
+              zipCode: profileData.zipCode || "",
+              email: profileData.email || u.email || ""
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to fetch user profile:', error);
+        }
         
         // Fetch selected plan from database
         try {
@@ -108,8 +139,8 @@ const Agreement: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user || !signed || !signName.trim()) {
-      setError("Please complete the signature fields");
+    if (!user || !signed || !signName.trim() || !signature) {
+      setError("Please complete all signature fields including drawing your signature");
       return;
     }
 
@@ -121,6 +152,7 @@ const Agreement: React.FC = () => {
       await set(ref(database, `users/${user.uid}/agreement`), {
         agreed: true,
         signedName: signName,
+        signature: signature,
         signedAt: new Date().toISOString(),
         ipAddress: "user-ip-placeholder",
         userAgent: navigator.userAgent,
@@ -259,19 +291,52 @@ const Agreement: React.FC = () => {
 
           {/* Agreement Content */}
           <div className="p-6">
-            <AgreementDisplay planDetails={planDetails} />
+            <AgreementDisplay planDetails={planDetails} userProfile={userProfile} />
           </div>
 
           {/* Signature Section */}
           <div className="border-t bg-gray-50 p-6">
             <div className="max-w-2xl mx-auto">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Electronic Signature
+                Digital Signature
               </h3>
               
+              {/* Signature Pad */}
               <div className="bg-white p-4 rounded-lg border mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type your full name to electronically sign this agreement
+                  Draw your signature below:
+                </label>
+                <SignaturePad
+                  ref={signaturePadRef}
+                  width={500}
+                  height={200}
+                  onSignatureChange={(sig) => setSignature(sig || null)}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (signaturePadRef.current) {
+                        signaturePadRef.current.clear();
+                        setSignature(null);
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  >
+                    Clear Signature
+                  </button>
+                  {signature && (
+                    <span className="text-sm text-green-600 flex items-center">
+                      ✓ Signature captured
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Typed Name */}
+              <div className="bg-white p-4 rounded-lg border mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type your full legal name:
                 </label>
                 <input
                   type="text"
@@ -282,6 +347,7 @@ const Agreement: React.FC = () => {
                 />
               </div>
 
+              {/* Agreement Checkbox */}
               <label className="inline-flex items-start mt-4">
                 <input
                   type="checkbox"
@@ -291,8 +357,8 @@ const Agreement: React.FC = () => {
                 />
                 <span className="text-sm text-gray-700">
                   I have read and agree to the terms of this Service Agreement. 
-                  By checking this box and typing my name above, I acknowledge that 
-                  this constitutes my electronic signature and has the same legal 
+                  By checking this box, typing my name above, and providing my digital signature, 
+                  I acknowledge that this constitutes my electronic signature and has the same legal 
                   effect as a handwritten signature.
                 </span>
               </label>
