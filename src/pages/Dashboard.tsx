@@ -72,6 +72,18 @@ interface DashboardData {
   }
   sessions: any[]
   agreement: { agreed: boolean }
+  planChangeRequest?: {
+    currentPlan: string
+    newPlan: string
+    currentPrice: number
+    newPrice: number
+    paymentMode: string
+    status: 'pending' | 'approved' | 'denied'
+    requestedAt: string
+    reviewedBy?: string
+    reviewedAt?: string
+    adminComment?: string
+  }
 }
 
 // Helper to derive milestones from dashboard data and optional uploads
@@ -497,6 +509,75 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  const handleExecutePlanChange = async () => {
+    if (!dashboardData?.planChangeRequest || dashboardData.planChangeRequest.status !== 'approved') {
+      return
+    }
+
+    try {
+      setPlanChangeLoading(true)
+      setError(null)
+
+      const { getAuth } = await import('firebase/auth')
+      const app = (await import('../firebase')).default
+      const auth = getAuth(app)
+      const user = auth.currentUser
+      
+      if (!user) {
+        throw new Error('Not authenticated')
+      }
+
+      const idToken = await user.getIdToken(true)
+
+      // Use the same API endpoint resolution logic
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === "development"
+      const defaultProdApi = "https://api.accreditedfs.com"
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+      
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, "")}/api/user-dashboard`
+        : "/api/user-dashboard"
+
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || 'Failed to execute plan change')
+      }
+
+      const result = await response.json()
+      
+      if (result.requiresPayment && result.checkoutUrl) {
+        // For full payment plans, redirect to Stripe checkout
+        console.log('Redirecting to checkout for full payment...')
+        window.location.href = result.checkoutUrl
+      } else {
+        // For monthly plans, refresh dashboard to show changes
+        console.log('Plan change executed successfully, refreshing dashboard...')
+        window.location.reload()
+      }
+      
+    } catch (err: any) {
+      console.error('Execute plan change error:', err)
+      setError(err.message || 'Failed to execute plan change')
+    } finally {
+      setPlanChangeLoading(false)
+    }
+  }
+
   // Convert dashboard data to format expected by PlanChangeModal
   const getCurrentPlanForModal = () => {
     if (!dashboardData?.currentPlan) return null
@@ -571,6 +652,77 @@ const Dashboard: React.FC = () => {
           </h1>
           <p className="text-gray-600 mt-2">Track your credit repair progress and manage your account</p>
         </div>
+
+        {/* Pending Plan Change Banner */}
+        {dashboardData.planChangeRequest && (
+          <div className={`mb-6 p-4 rounded-lg border-l-4 ${
+            dashboardData.planChangeRequest.status === 'pending' 
+              ? 'bg-yellow-50 border-yellow-400'
+              : dashboardData.planChangeRequest.status === 'approved'
+              ? 'bg-green-50 border-green-400'
+              : 'bg-red-50 border-red-400'
+          }`}>
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                {dashboardData.planChangeRequest.status === 'pending' && (
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                )}
+                {dashboardData.planChangeRequest.status === 'approved' && (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                )}
+                {dashboardData.planChangeRequest.status === 'denied' && (
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                )}
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className={`text-sm font-medium ${
+                  dashboardData.planChangeRequest.status === 'pending'
+                    ? 'text-yellow-800'
+                    : dashboardData.planChangeRequest.status === 'approved'
+                    ? 'text-green-800'
+                    : 'text-red-800'
+                }`}>
+                  {dashboardData.planChangeRequest.status === 'pending' && 'Plan Change Request Pending'}
+                  {dashboardData.planChangeRequest.status === 'approved' && 'Plan Change Request Approved'}
+                  {dashboardData.planChangeRequest.status === 'denied' && 'Plan Change Request Denied'}
+                </h3>
+                <div className={`mt-2 text-sm ${
+                  dashboardData.planChangeRequest.status === 'pending'
+                    ? 'text-yellow-700'
+                    : dashboardData.planChangeRequest.status === 'approved'
+                    ? 'text-green-700'
+                    : 'text-red-700'
+                }`}>
+                  <p>
+                    <strong>From:</strong> {dashboardData.planChangeRequest.currentPlan} (${(dashboardData.planChangeRequest.currentPrice / 100).toFixed(2)})
+                    {' → '}
+                    <strong>To:</strong> {dashboardData.planChangeRequest.newPlan} (${(dashboardData.planChangeRequest.newPrice / 100).toFixed(2)})
+                  </p>
+                  <p className="mt-1">
+                    <strong>Payment Mode:</strong> {dashboardData.planChangeRequest.paymentMode === 'full' ? 'Full Payment' : 'Monthly Subscription'}
+                  </p>
+                  <p className="mt-1 text-xs">
+                    Requested on {new Date(dashboardData.planChangeRequest.requestedAt).toLocaleDateString()}
+                  </p>
+                  {dashboardData.planChangeRequest.adminComment && (
+                    <p className="mt-2 text-sm italic">
+                      <strong>Admin Note:</strong> {dashboardData.planChangeRequest.adminComment}
+                    </p>
+                  )}
+                </div>
+                {dashboardData.planChangeRequest.status === 'approved' && (
+                  <button
+                    onClick={handleExecutePlanChange}
+                    disabled={planChangeLoading}
+                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  >
+                    {planChangeLoading ? 'Processing...' : 'Execute Plan Change'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="mb-8">

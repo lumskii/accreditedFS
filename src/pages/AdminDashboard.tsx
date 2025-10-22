@@ -37,6 +37,21 @@ interface User {
   }
 }
 
+interface PlanChangeRequest {
+  userId: string
+  userEmail: string
+  currentPlan: string
+  newPlan: string
+  currentPrice: number
+  newPrice: number
+  paymentMode: string
+  status: 'pending' | 'approved' | 'denied'
+  requestedAt: string
+  reviewedBy?: string
+  reviewedAt?: string
+  adminComment?: string
+}
+
 const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<User[]>([])
@@ -56,13 +71,22 @@ const AdminDashboard: React.FC = () => {
   })
   const [userUploads, setUserUploads] = useState<Array<{name: string, url: string, uploadedAt?: string}>>([])
   const [deletingUploadKey, setDeletingUploadKey] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'disputes' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plan-changes' | 'disputes' | 'settings'>('overview')
+  const [planChangeRequests, setPlanChangeRequests] = useState<PlanChangeRequest[]>([])
+  const [loadingPlanChanges, setLoadingPlanChanges] = useState(false)
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null)
   
   const navigate = useNavigate()
 
   useEffect(() => {
     checkAdminAuth()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'plan-changes' && users.length > 0) {
+      fetchPlanChangeRequests()
+    }
+  }, [activeTab, users])
 
   const checkAdminAuth = async () => {
     try {
@@ -175,6 +199,106 @@ const AdminDashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch admin data:', error)
       setLoading(false)
+    }
+  }
+
+  const fetchPlanChangeRequests = async () => {
+    try {
+      setLoadingPlanChanges(true)
+      const { ref, get } = await import('firebase/database')
+      const { database } = await import('../firebase')
+      
+      const requestsRef = ref(database, 'planChangeRequests')
+      const snapshot = await get(requestsRef)
+      
+      if (!snapshot.exists()) {
+        setPlanChangeRequests([])
+        setLoadingPlanChanges(false)
+        return
+      }
+
+      const requestsData = snapshot.val()
+      const requests: PlanChangeRequest[] = []
+
+      // Convert Firebase object to array and enrich with user data
+      for (const [userId, requestData] of Object.entries(requestsData)) {
+        const user = users.find(u => u.uid === userId)
+        requests.push({
+          userId,
+          userEmail: user?.email || 'Unknown',
+          ...(requestData as any)
+        })
+      }
+
+      // Sort by requested date, newest first
+      requests.sort((a, b) => 
+        new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+      )
+
+      setPlanChangeRequests(requests)
+      setLoadingPlanChanges(false)
+    } catch (error) {
+      console.error('Failed to fetch plan change requests:', error)
+      setLoadingPlanChanges(false)
+    }
+  }
+
+  const handlePlanChangeAction = async (userId: string, action: 'approve' | 'deny', adminComment?: string) => {
+    try {
+      setProcessingRequestId(userId)
+
+      const { getAuth } = await import('firebase/auth')
+      const { default: app } = await import('../firebase')
+      const auth = getAuth(app)
+      const user = auth.currentUser
+
+      if (!user) {
+        throw new Error('No authenticated user')
+      }
+
+      const token = await user.getIdToken()
+      
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users`
+        : `/api/admin-users`
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId,
+          action,
+          adminComment
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to process plan change request')
+      }
+
+      // Refresh plan change requests after successful action
+      await fetchPlanChangeRequests()
+      
+      setProcessingRequestId(null)
+    } catch (error) {
+      console.error('Failed to process plan change request:', error)
+      alert(`Failed to ${action} plan change: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setProcessingRequestId(null)
     }
   }
 
@@ -374,6 +498,7 @@ const AdminDashboard: React.FC = () => {
             {[
               { key: 'overview', label: 'Overview', icon: TrendingUp },
               { key: 'users', label: 'Users', icon: Users },
+              { key: 'plan-changes', label: 'Plan Changes', icon: CreditCard },
               { key: 'disputes', label: 'Disputes', icon: FileText },
               { key: 'settings', label: 'Settings', icon: Settings }
             ].map(({ key, label, icon: Icon }) => (
@@ -600,6 +725,150 @@ const AdminDashboard: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Plan Changes Tab */}
+        {activeTab === 'plan-changes' && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">Plan Change Requests</h3>
+                <button
+                  onClick={fetchPlanChangeRequests}
+                  disabled={loadingPlanChanges}
+                  className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {loadingPlanChanges ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+
+              {loadingPlanChanges ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
+                </div>
+              ) : planChangeRequests.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                  <p>No plan change requests</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          User
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Current Plan
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Requested Plan
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Price Change
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Requested
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {planChangeRequests.map((request) => (
+                        <tr key={request.userId}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{request.userEmail}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{request.currentPlan}</div>
+                            <div className="text-xs text-gray-500">${(request.currentPrice / 100).toFixed(2)}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{request.newPlan}</div>
+                            <div className="text-xs text-gray-500">
+                              ${(request.newPrice / 100).toFixed(2)}
+                              {' '}({request.paymentMode === 'full' ? 'Full Payment' : 'Monthly'})
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className={`text-sm font-medium ${
+                              request.newPrice > request.currentPrice 
+                                ? 'text-green-600' 
+                                : request.newPrice < request.currentPrice
+                                ? 'text-red-600'
+                                : 'text-gray-600'
+                            }`}>
+                              {request.newPrice > request.currentPrice ? '+' : ''}
+                              ${((request.newPrice - request.currentPrice) / 100).toFixed(2)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              request.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : request.status === 'approved'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {request.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(request.requestedAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {request.status === 'pending' ? (
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    const comment = prompt('Optional admin comment:')
+                                    if (comment !== null) {
+                                      handlePlanChangeAction(request.userId, 'approve', comment || undefined)
+                                    }
+                                  }}
+                                  disabled={processingRequestId === request.userId}
+                                  className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                                >
+                                  <CheckCircle className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const comment = prompt('Reason for denial (optional):')
+                                    if (comment !== null) {
+                                      handlePlanChangeAction(request.userId, 'deny', comment || undefined)
+                                    }
+                                  }}
+                                  disabled={processingRequestId === request.userId}
+                                  className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                                >
+                                  <X className="h-5 w-5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500">
+                                {request.reviewedBy && (
+                                  <div>By: {request.reviewedBy}</div>
+                                )}
+                                {request.adminComment && (
+                                  <div className="mt-1 italic">{request.adminComment}</div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
