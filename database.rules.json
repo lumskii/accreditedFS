@@ -7,6 +7,7 @@
       }
     },
     "planChangeRequests": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
       "$userId": {
         ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
         ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
