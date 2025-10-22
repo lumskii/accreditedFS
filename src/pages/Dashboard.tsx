@@ -565,14 +565,16 @@ const Dashboard: React.FC = () => {
         console.log('Redirecting to checkout for full payment...')
         window.location.href = result.checkoutUrl
       } else {
-        // For monthly plans, refresh dashboard to show changes
+        // For monthly plans, show success message and refresh
         console.log('Plan change executed successfully, refreshing dashboard...')
+        alert('Plan change successful! Your subscription has been updated.')
         window.location.reload()
       }
       
     } catch (err: any) {
       console.error('Execute plan change error:', err)
       setError(err.message || 'Failed to execute plan change')
+      alert(`Error: ${err.message || 'Failed to execute plan change'}`)
     } finally {
       setPlanChangeLoading(false)
     }

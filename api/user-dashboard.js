@@ -861,12 +861,16 @@ async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
       agreement: userData.agreement || { agreed: false }
     };
 
-    // Add pending plan change request if exists
+    // Add pending plan change request if exists (only show pending/approved, not executed/denied)
     try {
       const planChangeRequestRef = db.ref(`planChangeRequests/${decoded.uid}`);
       const planChangeRequestSnap = await planChangeRequestRef.get();
       if (planChangeRequestSnap.exists()) {
-        dashboardData.planChangeRequest = planChangeRequestSnap.val();
+        const request = planChangeRequestSnap.val();
+        // Only include pending or approved requests in dashboard
+        if (request.status === 'pending' || request.status === 'approved') {
+          dashboardData.planChangeRequest = request;
+        }
       }
     } catch (requestError) {
       console.warn('Error fetching plan change request:', requestError);
