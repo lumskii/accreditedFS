@@ -11,8 +11,10 @@ import {
   AlertCircle,
   Clock,
   Star,
-  Download
+  Download,
+  Settings
 } from 'lucide-react'
+import PlanChangeModal from '../components/PlanChangeModal'
 
 interface DashboardData {
   user: {
@@ -116,6 +118,8 @@ const Dashboard: React.FC = () => {
   const [showAllUploads, setShowAllUploads] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
+  const [showPlanChangeModal, setShowPlanChangeModal] = useState(false)
+  const [planChangeLoading, setPlanChangeLoading] = useState(false)
   const MAX_MB = 20
   const ACCEPTED_TYPES = [
     'image/',
@@ -376,6 +380,95 @@ const Dashboard: React.FC = () => {
     }).format(amount)
   }
 
+  // Handle plan change
+  const handlePlanChange = async (newPlanId: string, billingCycle: 'full' | 'monthly') => {
+    try {
+      setPlanChangeLoading(true)
+      setError(null)
+
+      const { getAuth } = await import('firebase/auth')
+      const app = (await import('../firebase')).default
+      const auth = getAuth(app)
+      const user = auth.currentUser
+      
+      if (!user) {
+        throw new Error('Not authenticated')
+      }
+
+      const idToken = await user.getIdToken(true)
+
+      // Use the same API endpoint resolution logic
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === "development"
+      const defaultProdApi = "https://api.accreditedfs.com"
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+      
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, "")}/api/change-plan`
+        : "/api/change-plan"
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          newPlanId,
+          billingCycle
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || 'Failed to change plan')
+      }
+
+      const result = await response.json()
+      
+      // Refresh dashboard data to show the changes
+      window.location.reload()
+      
+    } catch (err: any) {
+      console.error('Plan change error:', err)
+      throw new Error(err.message || 'Failed to change plan')
+    } finally {
+      setPlanChangeLoading(false)
+    }
+  }
+
+  // Convert dashboard data to format expected by PlanChangeModal
+  const getCurrentPlanForModal = () => {
+    if (!dashboardData?.currentPlan) return null
+
+    // Map plan names to IDs
+    const planNameToId: Record<string, string> = {
+      'Credit Refresh': 'credit-refresh',
+      'Credit Rebuild': 'credit-rebuild', 
+      'Couples Advantage': 'couples-advantage'
+    }
+
+    const planId = planNameToId[dashboardData.currentPlan.plan] || 'unknown'
+    
+    // Only show modal if we can identify the current plan
+    if (planId === 'unknown') return null
+    
+    return {
+      id: planId,
+      name: dashboardData.currentPlan.plan,
+      billingCycle: 'monthly' as const, // Default to monthly, could be enhanced to detect actual cycle
+      status: dashboardData.currentPlan.status,
+      nextBilling: dashboardData.currentPlan.currentPeriodEnd,
+      amount: dashboardData.subscriptions[0]?.amount || 0
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -529,55 +622,65 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <button
-                      className="bg-blue-800 text-white px-4 py-2 rounded-md hover:bg-blue-900 disabled:opacity-50"
-                      disabled={portalLoading}
-                      onClick={async () => {
-                        try {
-                          setPortalError(null)
-                          setPortalLoading(true)
-                          const { getAuth } = await import('firebase/auth')
-                          const app = (await import('../firebase')).default
-                          const auth = getAuth(app)
-                          const user = auth.currentUser
-                          if (!user) throw new Error('Not authenticated')
-                          const idToken = await user.getIdToken()
+                    <div className="space-y-2">
+                      <button
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+                        disabled={planChangeLoading || !getCurrentPlanForModal()}
+                        onClick={() => setShowPlanChangeModal(true)}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        {planChangeLoading ? 'Processing...' : 'Change Plan'}
+                      </button>
+                      <button
+                        className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50 text-sm"
+                        disabled={portalLoading}
+                        onClick={async () => {
+                          try {
+                            setPortalError(null)
+                            setPortalLoading(true)
+                            const { getAuth } = await import('firebase/auth')
+                            const app = (await import('../firebase')).default
+                            const auth = getAuth(app)
+                            const user = auth.currentUser
+                            if (!user) throw new Error('Not authenticated')
+                            const idToken = await user.getIdToken()
 
-                          const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
-                          const isDev = import.meta.env.MODE === 'development'
-                          const defaultProdApi = 'https://api.accreditedfs.com'
-                          const isBrowser = typeof window !== 'undefined'
-                          const currentOrigin = isBrowser ? window.location.origin : ''
-                          const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
-                          const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
-                          const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
-                            ? envApiBase
-                            : (isDev ? '' : defaultProdApi)
+                            const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+                            const isDev = import.meta.env.MODE === 'development'
+                            const defaultProdApi = 'https://api.accreditedfs.com'
+                            const isBrowser = typeof window !== 'undefined'
+                            const currentOrigin = isBrowser ? window.location.origin : ''
+                            const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+                            const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+                            const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+                              ? envApiBase
+                              : (isDev ? '' : defaultProdApi)
 
-                          const endpoint = resolvedApiBase
-                            ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-portal-session`
-                            : `/api/create-portal-session`
-                          const resp = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${idToken}` },
-                            credentials: 'include'
-                          })
-                          if (!resp.ok) {
-                            const j = await resp.json().catch(() => ({} as any))
-                            const msg = j?.details ? `${j.error || 'Failed to open portal'}: ${j.details}` : (j?.error || 'Failed to open portal')
-                            throw new Error(msg)
+                            const endpoint = resolvedApiBase
+                              ? `${resolvedApiBase.replace(/\/$/, '')}/api/create-portal-session`
+                              : `/api/create-portal-session`
+                            const resp = await fetch(endpoint, {
+                              method: 'POST',
+                              headers: { 'Authorization': `Bearer ${idToken}` },
+                              credentials: 'include'
+                            })
+                            if (!resp.ok) {
+                              const j = await resp.json().catch(() => ({} as any))
+                              const msg = j?.details ? `${j.error || 'Failed to open portal'}: ${j.details}` : (j?.error || 'Failed to open portal')
+                              throw new Error(msg)
+                            }
+                            const { url } = await resp.json()
+                            if (url) window.location.href = url
+                          } catch (e: any) {
+                            setPortalError(e.message || 'Failed to open portal')
+                          } finally {
+                            setPortalLoading(false)
                           }
-                          const { url } = await resp.json()
-                          if (url) window.location.href = url
-                        } catch (e: any) {
-                          setPortalError(e.message || 'Failed to open portal')
-                        } finally {
-                          setPortalLoading(false)
-                        }
-                      }}
-                    >
-                      {portalLoading ? 'Opening…' : 'Manage Plan'}
-                    </button>
+                        }}
+                      >
+                        {portalLoading ? 'Opening...' : 'Billing Portal'}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 {portalError && (
@@ -1055,6 +1158,16 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Plan Change Modal */}
+      {dashboardData?.currentPlan && getCurrentPlanForModal() && (
+        <PlanChangeModal
+          isOpen={showPlanChangeModal}
+          onClose={() => setShowPlanChangeModal(false)}
+          currentPlan={getCurrentPlanForModal()!}
+          onPlanChange={handlePlanChange}
+        />
+      )}
     </div>
   )
 }
