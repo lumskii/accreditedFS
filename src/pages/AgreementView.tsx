@@ -206,7 +206,16 @@ const AgreementView: React.FC = () => {
 
           {/* Agreement Content */}
           <div className="p-6">
-            <AgreementDisplay planDetails={agreementData.planDetails} userProfile={userProfile} />
+            <AgreementDisplay 
+              planDetails={agreementData.planDetails} 
+              userProfile={userProfile}
+              showSignature={true}
+              signedData={{
+                signedBy: agreementData.signedName,
+                signedAt: new Date(agreementData.signedAt).getTime(),
+                signature: agreementData.signature
+              }}
+            />
           </div>
 
           {/* Signature Block - Show at bottom for print */}

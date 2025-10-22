@@ -211,6 +211,33 @@ const Dashboard: React.FC = () => {
 
         const data = await response.json()
         console.log('Dashboard data received:', Object.keys(data))
+        
+        // If no current plan from API, try to get plan info from signed agreement
+        if (!data.currentPlan || !data.currentPlan.plan || data.currentPlan.plan === 'Unknown Plan') {
+          try {
+            const { ref, get } = await import('firebase/database')
+            const { database } = await import('../firebase')
+            const agreementRef = ref(database, `users/${user.uid}/agreement`)
+            const agreementSnap = await get(agreementRef)
+            
+            if (agreementSnap.exists()) {
+              const agreementData = agreementSnap.val()
+              if (agreementData.planDetails && agreementData.planDetails.name) {
+                // Create or update currentPlan with agreement data
+                data.currentPlan = {
+                  id: 'agreement-plan',
+                  status: 'active',
+                  currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+                  plan: agreementData.planDetails.name
+                }
+                console.log('Updated plan from agreement:', data.currentPlan.plan)
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to load plan from agreement:', e)
+          }
+        }
+        
         setDashboardData(data)
         // Load uploads from RTDB
         try {
@@ -478,7 +505,9 @@ const Dashboard: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm text-gray-600">Current Plan</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {dashboardData.currentPlan?.plan || 'No Active Plan'}
+                      {dashboardData.currentPlan?.plan === 'Unknown Plan' 
+                        ? 'Plan Information Loading...' 
+                        : dashboardData.currentPlan?.plan || 'No Active Plan'}
                     </p>
                   </div>
                 </div>
