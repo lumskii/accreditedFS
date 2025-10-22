@@ -473,8 +473,15 @@ const Dashboard: React.FC = () => {
 
       const result = await response.json()
       
-      // Refresh dashboard data to show the changes
-      window.location.reload()
+      if (result.requiresPayment && result.checkoutUrl) {
+        // For full payment plans, redirect to Stripe checkout
+        console.log('Redirecting to checkout for full payment...')
+        window.location.href = result.checkoutUrl
+      } else {
+        // For monthly plans, refresh dashboard to show changes
+        console.log('Plan change completed, refreshing dashboard...')
+        window.location.reload()
+      }
       
     } catch (err: any) {
       console.error('Plan change error:', err)

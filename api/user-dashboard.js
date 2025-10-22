@@ -205,20 +205,93 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
     let result;
 
     if (billingCycle === 'full') {
-      // For full payment plans, update the subscription
-      result = await stripe.subscriptions.update(currentSubscription.id, {
-        items: [{
-          id: currentSubscription.items.data[0].id,
-          price: newPriceId,
-        }],
-        proration_behavior: 'create_prorations',
-      });
+      // For full payment plans, we need to create a one-time payment and cancel subscription
+      // First, validate that the price is a one-time payment price
+      try {
+        const price = await stripe.prices.retrieve(newPriceId);
+        console.log('Price details:', { id: price.id, type: price.type, recurring: price.recurring });
+        
+        if (price.type !== 'one_time') {
+          return res.status(400).json({ 
+            error: `Full payment plan requires a one-time price, but got type: ${price.type}`,
+            priceId: newPriceId,
+            details: 'Please check your Stripe price configuration'
+          });
+        }
+      } catch (priceError) {
+        console.error('Error retrieving price:', priceError);
+        return res.status(500).json({ 
+          error: 'Invalid price ID or unable to retrieve price information',
+          priceId: newPriceId
+        });
+      }
+
+      // Create a payment session for the one-time payment
+      try {
+        const session = await stripe.checkout.sessions.create({
+          customer: customer.id,
+          payment_method_types: ['card'],
+          mode: 'payment', // One-time payment mode
+          line_items: [{
+            price: newPriceId,
+            quantity: 1,
+          }],
+          success_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?session_id={CHECKOUT_SESSION_ID}&plan_change=success`,
+          cancel_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?plan_change=cancelled`,
+          metadata: {
+            plan_change: 'true',
+            new_plan: newPlanId,
+            billing_cycle: billingCycle,
+            user_id: decoded.uid,
+            old_subscription_id: currentSubscription.id
+          }
+        });
+
+        // Schedule the old subscription to be cancelled (don't cancel immediately to allow grace period)
+        await stripe.subscriptions.update(currentSubscription.id, {
+          cancel_at_period_end: true,
+          metadata: {
+            plan_change_pending: 'true',
+            new_checkout_session: session.id
+          }
+        });
+
+        result = { 
+          type: 'checkout_session',
+          checkout_session: session,
+          old_subscription_id: currentSubscription.id
+        };
+      } catch (sessionError) {
+        console.error('Error creating checkout session:', sessionError);
+        return res.status(500).json({ 
+          error: 'Failed to create payment session',
+          details: sessionError.message
+        });
+      }
     } else {
       // For monthly plans, we need to handle setup fee + monthly
       const depositPriceId = PRICE_IDS[newPlanId].deposit;
       
       if (!depositPriceId) {
         return res.status(500).json({ error: `Missing deposit price ID for ${newPlanId}` });
+      }
+
+      // Validate that monthly price is recurring
+      try {
+        const monthlyPrice = await stripe.prices.retrieve(newPriceId);
+        const depositPrice = await stripe.prices.retrieve(depositPriceId);
+        
+        if (monthlyPrice.type !== 'recurring') {
+          return res.status(400).json({ 
+            error: `Monthly plan requires a recurring price, but got type: ${monthlyPrice.type}`,
+            priceId: newPriceId
+          });
+        }
+      } catch (priceError) {
+        console.error('Error retrieving monthly/deposit prices:', priceError);
+        return res.status(500).json({ 
+          error: 'Invalid price IDs for monthly plan'
+        });
       }
 
       // Create a new subscription with both setup fee and monthly price
@@ -245,25 +318,52 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
     };
 
     const userRef = db.ref(`users/${decoded.uid}`);
-    await userRef.update({
-      'planChange': {
-        newPlan: newPlanId,
-        newPlanName: planNames[newPlanId],
-        billingCycle: billingCycle,
+    
+    if (result.type === 'checkout_session') {
+      // For full payment plans, store pending state until payment is completed
+      await userRef.update({
+        'planChange': {
+          newPlan: newPlanId,
+          newPlanName: planNames[newPlanId],
+          billingCycle: billingCycle,
+          checkoutSessionId: result.checkout_session.id,
+          oldSubscriptionId: result.old_subscription_id,
+          changedAt: admin.database.ServerValue.TIMESTAMP,
+          status: 'pending_payment'
+        }
+      });
+
+      console.log(`Plan change initiated for user ${decoded.uid}: ${newPlanId} (${billingCycle}) - Checkout session created`);
+
+      return res.status(200).json({
+        success: true,
+        requiresPayment: true,
+        checkoutUrl: result.checkout_session.url,
+        sessionId: result.checkout_session.id,
+        message: 'Please complete payment to finish plan change'
+      });
+    } else {
+      // For monthly subscription changes
+      await userRef.update({
+        'planChange': {
+          newPlan: newPlanId,
+          newPlanName: planNames[newPlanId],
+          billingCycle: billingCycle,
+          subscriptionId: result.id,
+          changedAt: admin.database.ServerValue.TIMESTAMP,
+          status: 'active'
+        }
+      });
+
+      console.log(`Plan change completed for user ${decoded.uid}: ${newPlanId} (${billingCycle})`);
+
+      return res.status(200).json({
+        success: true,
         subscriptionId: result.id,
-        changedAt: admin.database.ServerValue.TIMESTAMP,
-        status: 'active'
-      }
-    });
-
-    console.log(`Plan change for user ${decoded.uid}: ${newPlanId} (${billingCycle})`);
-
-    return res.status(200).json({
-      success: true,
-      subscriptionId: result.id,
-      status: result.status,
-      message: 'Plan change successful'
-    });
+        status: result.status,
+        message: 'Plan change successful'
+      });
+    }
 
   } catch (error) {
     console.error('Plan change error:', error);
