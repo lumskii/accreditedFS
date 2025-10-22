@@ -6,6 +6,13 @@
         ".write": "!data.exists() && newData.hasChildren(['email','createdAt'])"
       }
     },
+    "planChangeRequests": {
+      "$userId": {
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+        ".validate": "newData.hasChildren(['userId','userEmail','currentPlan','newPlan','currentPrice','newPrice','paymentMode','status','requestedAt'])"
+      }
+    },
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
