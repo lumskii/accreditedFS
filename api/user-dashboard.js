@@ -110,12 +110,20 @@ export default async function handler(req, res) {
     // Get user info
     const userRecord = await admin.auth().getUser(decoded.uid);
     
-    // Handle POST request for plan changes
+    // Handle POST request for plan change requests (hybrid system)
     if (req.method === "POST") {
-      return await handlePlanChange(req, res, decoded, stripe, db);
+      return await handlePlanChangeRequest(req, res, decoded, stripe, db);
     }
     
-    // Handle GET request for dashboard data
+    // Handle PATCH request for executing approved plan changes (admin action)
+    if (req.method === "PATCH") {
+      const { action, requestId } = req.body;
+      if (action === 'executePlanChange') {
+        return await handleExecuteApprovedPlanChange(req, res, decoded, stripe, db);
+      }
+    }
+    
+    // Handle GET request for dashboard data (includes plan change requests)
     return await handleDashboardData(req, res, decoded, userRecord, stripe, db);
     
   } catch (error) {
@@ -127,15 +135,17 @@ export default async function handler(req, res) {
   }
 }
 
-// Plan change handler function
-async function handlePlanChange(req, res, decoded, stripe, db) {
+// Plan change request handler function (HYBRID SYSTEM)
+// Immediate approval for: Upgrades & Lateral moves
+// Requires approval for: Downgrades
+async function handlePlanChangeRequest(req, res, decoded, stripe, db) {
   try {
     console.log('=== Plan Change Request ===')
     console.log('User:', decoded.email, decoded.uid)
     console.log('Request body:', req.body)
     
     // Extract request data
-    const { newPlanId, billingCycle } = req.body;
+    const { newPlanId, billingCycle, reason } = req.body;
 
     if (!newPlanId || !billingCycle) {
       console.error('Missing required fields:', { newPlanId, billingCycle })
@@ -223,6 +233,78 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
         availablePrices: PRICE_IDS[newPlanId]
       });
     }
+
+    // HYBRID SYSTEM: Determine if approval is required
+    // Get current and new prices to compare
+    const currentPriceId = currentSubscription.items.data[0]?.price?.id;
+    let requiresApproval = false;
+    let changeType = 'lateral';
+    
+    try {
+      const currentPrice = await stripe.prices.retrieve(currentPriceId);
+      const newPrice = await stripe.prices.retrieve(newPriceId);
+      
+      const currentAmount = currentPrice.unit_amount || 0;
+      const newAmount = newPrice.unit_amount || 0;
+      
+      if (newAmount > currentAmount) {
+        changeType = 'upgrade';
+        requiresApproval = false; // Upgrades are auto-approved
+      } else if (newAmount < currentAmount) {
+        changeType = 'downgrade';
+        requiresApproval = true; // Downgrades require approval
+      } else {
+        changeType = 'lateral';
+        requiresApproval = false; // Lateral moves are auto-approved
+      }
+      
+      console.log('Change type:', changeType, '| Requires approval:', requiresApproval);
+      console.log('Price comparison:', { currentAmount, newAmount });
+    } catch (priceError) {
+      console.error('Error comparing prices:', priceError);
+      // If we can't determine, require approval to be safe
+      requiresApproval = true;
+    }
+
+    // If downgrade, create a pending request instead of executing immediately
+    if (requiresApproval) {
+      const planNames = {
+        'credit-refresh': 'Credit Refresh',
+        'credit-rebuild': 'Credit Rebuild', 
+        'couples-advantage': 'Couples Advantage'
+      };
+      
+      // Store the plan change request in Firebase
+      const requestRef = db.ref(`planChangeRequests/${decoded.uid}`);
+      await requestRef.set({
+        userId: decoded.uid,
+        userEmail: decoded.email,
+        userName: decoded.name || decoded.email,
+        currentPlanId: currentPriceId,
+        requestedPlanId: newPlanId,
+        requestedPlanName: planNames[newPlanId] || 'Unknown Plan',
+        requestedBilling: billingCycle,
+        requestedPriceId: newPriceId,
+        changeType: changeType,
+        reason: reason || 'No reason provided',
+        status: 'pending',
+        requestedAt: admin.database.ServerValue.TIMESTAMP,
+        subscriptionId: currentSubscription.id,
+        customerId: customer.id
+      });
+
+      console.log('Plan change request created (pending approval):', decoded.uid);
+
+      return res.status(200).json({
+        success: true,
+        requiresApproval: true,
+        message: 'Your downgrade request has been submitted for admin review. You will be notified once approved.',
+        requestType: changeType
+      });
+    }
+
+    // If upgrade or lateral move, proceed with immediate execution
+    console.log('Auto-approving plan change:', changeType);
 
     let result;
 
@@ -409,6 +491,133 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
       error: 'Plan change failed', 
       details: error.message,
       type: error.type || 'UnknownError'
+    });
+  }
+}
+
+// Handle executing an approved plan change (called when user confirms after admin approval)
+async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
+  try {
+    console.log('=== Executing Approved Plan Change ===');
+    console.log('User:', decoded.email, decoded.uid);
+    
+    // Get the approved request from Firebase
+    const requestRef = db.ref(`planChangeRequests/${decoded.uid}`);
+    const requestSnap = await requestRef.get();
+    
+    if (!requestSnap.exists()) {
+      return res.status(404).json({ error: 'No plan change request found' });
+    }
+    
+    const request = requestSnap.val();
+    
+    if (request.status !== 'approved') {
+      return res.status(400).json({ 
+        error: 'Plan change request is not approved',
+        status: request.status
+      });
+    }
+    
+    console.log('Executing approved plan change:', request);
+    
+    // Execute the plan change using the stored request data
+    const { requestedPlanId, requestedBilling, requestedPriceId, subscriptionId, customerId } = request;
+    
+    const customer = await stripe.customers.retrieve(customerId);
+    const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    
+    let result;
+    
+    if (requestedBilling === 'full') {
+      // Create checkout session for one-time payment
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items: [{ price: requestedPriceId, quantity: 1 }],
+        success_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?session_id={CHECKOUT_SESSION_ID}&plan_change=success`,
+        cancel_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?plan_change=cancelled`,
+        metadata: {
+          plan_change: 'true',
+          new_plan: requestedPlanId,
+          billing_cycle: requestedBilling,
+          user_id: decoded.uid,
+          old_subscription_id: subscriptionId
+        }
+      });
+      
+      await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+        metadata: { plan_change_pending: 'true', new_checkout_session: session.id }
+      });
+      
+      result = { type: 'checkout_session', checkout_session: session };
+    } else {
+      // Update subscription for monthly plan
+      result = await stripe.subscriptions.update(subscriptionId, {
+        items: [{ id: currentSubscription.items.data[0].id, price: requestedPriceId }],
+        proration_behavior: 'create_prorations',
+      });
+    }
+    
+    // Update request status to executed
+    await requestRef.update({
+      status: 'executed',
+      executedAt: admin.database.ServerValue.TIMESTAMP
+    });
+    
+    const planNames = {
+      'credit-refresh': 'Credit Refresh',
+      'credit-rebuild': 'Credit Rebuild',
+      'couples-advantage': 'Couples Advantage'
+    };
+    
+    // Update user plan data
+    const userRef = db.ref(`users/${decoded.uid}`);
+    if (result.type === 'checkout_session') {
+      await userRef.update({
+        'planChange': {
+          newPlan: requestedPlanId,
+          newPlanName: planNames[requestedPlanId],
+          billingCycle: requestedBilling,
+          checkoutSessionId: result.checkout_session.id,
+          changedAt: admin.database.ServerValue.TIMESTAMP,
+          status: 'pending_payment'
+        }
+      });
+      
+      return res.status(200).json({
+        success: true,
+        requiresPayment: true,
+        checkoutUrl: result.checkout_session.url,
+        sessionId: result.checkout_session.id,
+        message: 'Please complete payment to finish plan change'
+      });
+    } else {
+      await userRef.update({
+        'planChange': {
+          newPlan: requestedPlanId,
+          newPlanName: planNames[requestedPlanId],
+          billingCycle: requestedBilling,
+          subscriptionId: result.id,
+          changedAt: admin.database.ServerValue.TIMESTAMP,
+          status: 'active'
+        }
+      });
+      
+      return res.status(200).json({
+        success: true,
+        subscriptionId: result.id,
+        status: result.status,
+        message: 'Plan change completed successfully'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Execute approved plan change error:', error);
+    return res.status(500).json({
+      error: 'Failed to execute plan change',
+      details: error.message
     });
   }
 }
@@ -633,6 +842,18 @@ async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
       },
       agreement: userData.agreement || { agreed: false }
     };
+
+    // Add pending plan change request if exists
+    try {
+      const planChangeRequestRef = db.ref(`planChangeRequests/${decoded.uid}`);
+      const planChangeRequestSnap = await planChangeRequestRef.get();
+      if (planChangeRequestSnap.exists()) {
+        dashboardData.planChangeRequest = planChangeRequestSnap.val();
+      }
+    } catch (requestError) {
+      console.warn('Error fetching plan change request:', requestError);
+      // Continue without plan change request data
+    }
 
     res.json(dashboardData);
   } catch (err) {

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -70,6 +70,51 @@ export default async function handler(req, res) {
 
     console.log('Admin access verified for:', decoded.email);
 
+    // Handle POST requests (approve/deny plan change)
+    if (req.method === 'POST') {
+      const { userId, action, adminComment } = req.body;
+      
+      if (!userId || !action) {
+        return res.status(400).json({ error: 'Missing userId or action' });
+      }
+      
+      if (!['approve', 'deny'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action. Must be approve or deny' });
+      }
+      
+      // Get the plan change request
+      const requestRef = admin.database().ref(`planChangeRequests/${userId}`);
+      const requestSnap = await requestRef.once('value');
+      
+      if (!requestSnap.exists()) {
+        return res.status(404).json({ error: 'Plan change request not found' });
+      }
+      
+      const requestData = requestSnap.val();
+      
+      if (requestData.status !== 'pending') {
+        return res.status(400).json({ error: `Request already ${requestData.status}` });
+      }
+      
+      // Update the request status
+      await requestRef.update({
+        status: action === 'approve' ? 'approved' : 'denied',
+        reviewedBy: decoded.email,
+        reviewedAt: Date.now(),
+        adminComment: adminComment || ''
+      });
+      
+      console.log(`Plan change request ${action}d for user ${userId} by ${decoded.email}`);
+      
+      return res.status(200).json({ 
+        success: true,
+        message: `Plan change ${action}d successfully`,
+        requestId: userId,
+        status: action === 'approve' ? 'approved' : 'denied'
+      });
+    }
+
+    // Handle GET requests (fetch all users)
     // Get all users from database
     const usersRef = admin.database().ref('users');
     const usersSnap = await usersRef.once('value');
