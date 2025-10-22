@@ -259,13 +259,15 @@ async function handlePlanChangeRequest(req, res, decoded, stripe, db) {
     const currentPriceId = currentSubscription.items.data[0]?.price?.id;
     let requiresApproval = false;
     let changeType = 'lateral';
+    let currentAmount = 0;
+    let newAmount = 0;
     
     try {
       const currentPrice = await stripe.prices.retrieve(currentPriceId);
       const newPrice = await stripe.prices.retrieve(newPriceId);
       
-      const currentAmount = currentPrice.unit_amount || 0;
-      const newAmount = newPrice.unit_amount || 0;
+      currentAmount = currentPrice.unit_amount || 0;
+      newAmount = newPrice.unit_amount || 0;
       
       if (newAmount > currentAmount) {
         changeType = 'upgrade';
