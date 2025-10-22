@@ -47,6 +47,12 @@ const AgreementDisplay: React.FC<AgreementDisplayProps> = ({
     hour: '2-digit',
     minute: '2-digit'
   })
+  
+  const formatSignatureDate = (timestamp: number) => new Date(timestamp).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
 
   const getPlanDetails = () => {
     if (!planDetails) return null
@@ -476,7 +482,7 @@ Any unearned funds remaining in escrow upon cancellation will be returned to Cli
                 <span className="font-semibold min-w-[140px]">Date:</span>
                 {showSignature && signedData ? (
                   <div className="w-40 text-gray-900 font-medium border-b border-gray-400 pb-1">
-                    {formatDate(signedData.signedAt).split(' ')[0]}
+                    {formatSignatureDate(signedData.signedAt)}
                   </div>
                 ) : (
                   <div className="w-40 border-b border-gray-400 h-8"></div>
