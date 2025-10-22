@@ -549,14 +549,14 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
     console.log('Executing approved plan change:', request);
     
     // Execute the plan change using the stored request data
-    const { requestedPlanId, requestedBilling, requestedPriceId, subscriptionId, customerId } = request;
+    const { requestedPlanId, paymentMode, requestedPriceId, subscriptionId, customerId } = request;
     
     const customer = await stripe.customers.retrieve(customerId);
     const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
     
     let result;
     
-    if (requestedBilling === 'full') {
+    if (paymentMode === 'full') {
       // Create checkout session for one-time payment
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -568,7 +568,7 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
         metadata: {
           plan_change: 'true',
           new_plan: requestedPlanId,
-          billing_cycle: requestedBilling,
+          billing_cycle: paymentMode,
           user_id: decoded.uid,
           old_subscription_id: subscriptionId
         }
@@ -607,7 +607,7 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
         'planChange': {
           newPlan: requestedPlanId,
           newPlanName: planNames[requestedPlanId],
-          billingCycle: requestedBilling,
+          billingCycle: paymentMode,
           checkoutSessionId: result.checkout_session.id,
           changedAt: admin.database.ServerValue.TIMESTAMP,
           status: 'pending_payment'
@@ -626,7 +626,7 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
         'planChange': {
           newPlan: requestedPlanId,
           newPlanName: planNames[requestedPlanId],
-          billingCycle: requestedBilling,
+          billingCycle: paymentMode,
           subscriptionId: result.id,
           changedAt: admin.database.ServerValue.TIMESTAMP,
           status: 'active'
