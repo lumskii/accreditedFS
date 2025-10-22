@@ -1,6 +1,26 @@
 import Stripe from "stripe";
 import * as admin from 'firebase-admin'
 
+// Price ID to Plan Name mapping - used across multiple handlers
+const PRICE_TO_PLAN_MAP = {
+  // Will be populated with actual price IDs at runtime
+};
+
+// Helper function to populate PRICE_TO_PLAN_MAP with environment variables
+function getPriceToSPlanMap() {
+  return {
+    [process.env.STRIPE_PRICE_REFRESH_FULL]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'full' },
+    [process.env.STRIPE_PRICE_REFRESH_MONTHLY]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'monthly' },
+    [process.env.STRIPE_PRICE_REFRESH_DEPOSIT]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'deposit' },
+    [process.env.STRIPE_PRICE_REBUILD_FULL]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'full' },
+    [process.env.STRIPE_PRICE_REBUILD_MONTHLY]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'monthly' },
+    [process.env.STRIPE_PRICE_REBUILD_DEPOSIT]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'deposit' },
+    [process.env.STRIPE_PRICE_COUPLES_FULL]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'full' },
+    [process.env.STRIPE_PRICE_COUPLES_MONTHLY]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'monthly' },
+    [process.env.STRIPE_PRICE_COUPLES_DEPOSIT]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'deposit' },
+  };
+}
+
 export default async function handler(req, res) {
   // Set CORS headers for all requests FIRST
   const origin = req.headers.origin;
@@ -274,8 +294,11 @@ async function handlePlanChangeRequest(req, res, decoded, stripe, db) {
         'couples-advantage': 'Couples Advantage'
       };
       
+      // Get the price to plan map
+      const priceMap = getPriceToSPlanMap();
+      
       // Get current plan name from the current subscription
-      const currentPlanName = PRICE_TO_PLAN_MAP[currentPriceId] || 'Unknown Plan';
+      const currentPlanName = priceMap[currentPriceId]?.name || 'Unknown Plan';
       const newPlanName = planNames[newPlanId] || 'Unknown Plan';
       
       // Store the plan change request in Firebase
@@ -632,18 +655,8 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
 async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
   try {
     
-    // Create mapping from Stripe price IDs to plan names (used throughout this function)
-    const PRICE_TO_PLAN_MAP = {
-      [process.env.STRIPE_PRICE_REFRESH_FULL]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'full' },
-      [process.env.STRIPE_PRICE_REFRESH_MONTHLY]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'monthly' },
-      [process.env.STRIPE_PRICE_REFRESH_DEPOSIT]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'deposit' },
-      [process.env.STRIPE_PRICE_REBUILD_FULL]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'full' },
-      [process.env.STRIPE_PRICE_REBUILD_MONTHLY]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'monthly' },
-      [process.env.STRIPE_PRICE_REBUILD_DEPOSIT]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'deposit' },
-      [process.env.STRIPE_PRICE_COUPLES_FULL]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'full' },
-      [process.env.STRIPE_PRICE_COUPLES_MONTHLY]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'monthly' },
-      [process.env.STRIPE_PRICE_COUPLES_DEPOSIT]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'deposit' },
-    };
+    // Get mapping from Stripe price IDs to plan names
+    const PRICE_TO_PLAN_MAP = getPriceToSPlanMap();
     
     // Get user data from database
     const userRef = db.ref(`users/${decoded.uid}`);
