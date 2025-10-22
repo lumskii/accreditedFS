@@ -205,24 +205,35 @@ const AdminDashboard: React.FC = () => {
   const fetchPlanChangeRequests = async () => {
     try {
       setLoadingPlanChanges(true)
+      console.log('Fetching plan change requests...')
+      
       const { ref, get } = await import('firebase/database')
       const { database } = await import('../firebase')
       
+      console.log('Database imported:', database)
+      
       const requestsRef = ref(database, 'planChangeRequests')
+      console.log('Requests ref created:', requestsRef)
+      
       const snapshot = await get(requestsRef)
+      console.log('Snapshot exists:', snapshot.exists())
+      console.log('Snapshot val:', snapshot.val())
       
       if (!snapshot.exists()) {
+        console.log('No plan change requests found in database')
         setPlanChangeRequests([])
         setLoadingPlanChanges(false)
         return
       }
 
       const requestsData = snapshot.val()
+      console.log('Requests data:', requestsData)
       const requests: PlanChangeRequest[] = []
 
       // Convert Firebase object to array
       for (const [userId, requestData] of Object.entries(requestsData)) {
         const data = requestData as any
+        console.log('Processing request for user:', userId, data)
         requests.push({
           userId,
           userEmail: data.userEmail || 'Unknown',
@@ -244,10 +255,12 @@ const AdminDashboard: React.FC = () => {
         new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
       )
 
+      console.log('Processed requests:', requests)
       setPlanChangeRequests(requests)
       setLoadingPlanChanges(false)
     } catch (error) {
       console.error('Failed to fetch plan change requests:', error)
+      alert(`Error loading plan change requests: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setLoadingPlanChanges(false)
     }
   }
