@@ -468,7 +468,13 @@ const Dashboard: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.details || errorData.error || 'Failed to change plan')
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          url: endpoint
+        })
+        throw new Error(errorData.details || errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const result = await response.json()

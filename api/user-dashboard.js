@@ -130,14 +130,20 @@ export default async function handler(req, res) {
 // Plan change handler function
 async function handlePlanChange(req, res, decoded, stripe, db) {
   try {
+    console.log('=== Plan Change Request ===')
+    console.log('User:', decoded.email, decoded.uid)
+    console.log('Request body:', req.body)
+    
     // Extract request data
     const { newPlanId, billingCycle } = req.body;
 
     if (!newPlanId || !billingCycle) {
+      console.error('Missing required fields:', { newPlanId, billingCycle })
       return res.status(400).json({ error: 'Missing required fields: newPlanId, billingCycle' });
     }
 
     if (!['full', 'monthly'].includes(billingCycle)) {
+      console.error('Invalid billing cycle:', billingCycle)
       return res.status(400).json({ error: 'Invalid billing cycle. Must be "full" or "monthly"' });
     }
 
@@ -160,24 +166,31 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
       },
     };
 
+    console.log('Available price IDs:', PRICE_IDS)
+
     // Validate new plan
     if (!PRICE_IDS[newPlanId]) {
+      console.error('Invalid plan ID:', newPlanId)
       return res.status(400).json({ error: `Invalid plan: ${newPlanId}` });
     }
 
     // Get customer's current subscription from Stripe
+    console.log('Looking up customer by email:', decoded.email)
     const customers = await stripe.customers.list({
       email: decoded.email,
       limit: 1
     });
 
     if (!customers.data.length) {
+      console.error('Customer not found for email:', decoded.email)
       return res.status(404).json({ error: 'Customer not found' });
     }
 
     const customer = customers.data[0];
+    console.log('Found customer:', customer.id)
     
     // Get active subscriptions
+    console.log('Looking up active subscriptions for customer:', customer.id)
     const subscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
@@ -185,10 +198,12 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
     });
 
     if (!subscriptions.data.length) {
+      console.error('No active subscription found for customer:', customer.id)
       return res.status(404).json({ error: 'No active subscription found' });
     }
 
     const currentSubscription = subscriptions.data[0];
+    console.log('Found active subscription:', currentSubscription.id)
 
     // Determine new price ID based on billing cycle
     let newPriceId;
@@ -198,8 +213,15 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
       newPriceId = PRICE_IDS[newPlanId].monthly;
     }
 
+    console.log('Selected price ID:', newPriceId, 'for', newPlanId, billingCycle)
+
     if (!newPriceId) {
-      return res.status(500).json({ error: `Missing price ID for ${newPlanId} ${billingCycle} payment` });
+      console.error('Missing price ID for:', newPlanId, billingCycle)
+      console.error('Available prices for plan:', PRICE_IDS[newPlanId])
+      return res.status(500).json({ 
+        error: `Missing price ID for ${newPlanId} ${billingCycle} payment`,
+        availablePrices: PRICE_IDS[newPlanId]
+      });
     }
 
     let result;
@@ -366,19 +388,34 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
     }
 
   } catch (error) {
-    console.error('Plan change error:', error);
+    console.error('=== Plan Change Error ===');
+    console.error('Error type:', error.type);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Full error:', error);
+    console.error('Error stack:', error.stack);
     
     // Handle specific Stripe errors
     if (error.type === 'StripeCardError') {
       return res.status(400).json({ 
         error: 'Payment failed', 
-        details: error.message 
+        details: error.message,
+        code: error.code
+      });
+    }
+    
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        error: 'Invalid request to Stripe', 
+        details: error.message,
+        code: error.code
       });
     }
     
     return res.status(500).json({ 
       error: 'Plan change failed', 
-      details: error.message 
+      details: error.message,
+      type: error.type || 'UnknownError'
     });
   }
 }
