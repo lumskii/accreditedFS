@@ -138,23 +138,52 @@ const Dashboard: React.FC = () => {
         setLoading(true)
         setError(null)
         
-        const { getAuth, onAuthStateChanged } = await import('firebase/auth')
-        const app = (await import('../firebase')).default
-        const auth = getAuth(app)
+        // Add retry logic for Firebase auth network issues
+        const initializeAuth = async (retries = 3) => {
+          try {
+            const { getAuth, onAuthStateChanged } = await import('firebase/auth')
+            const app = (await import('../firebase')).default
+            const auth = getAuth(app)
+            
+            // Wait for auth state to be determined with timeout
+            const user = await new Promise<any>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                unsubscribe()
+                reject(new Error('Authentication timeout - network request failed'))
+              }, 15000) // Increased timeout to 15 seconds
+              
+              const unsubscribe = onAuthStateChanged(auth, (user) => {
+                clearTimeout(timeout)
+                unsubscribe()
+                resolve(user)
+              }, (error) => {
+                clearTimeout(timeout)
+                unsubscribe()
+                console.error('Auth state change error:', error)
+                reject(error)
+              })
+            })
+            
+            return user
+          } catch (error: any) {
+            console.error(`Auth initialization attempt failed:`, error)
+            
+            // Check if it's a network error and we have retries left
+            if (retries > 0 && (
+              error.code === 'auth/network-request-failed' || 
+              error.message?.includes('network') ||
+              error.message?.includes('timeout')
+            )) {
+              console.log(`Retrying auth initialization (${retries} attempts left)...`)
+              await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
+              return initializeAuth(retries - 1)
+            }
+            
+            throw error
+          }
+        }
         
-        // Wait for auth state to be determined with timeout
-        const user = await new Promise<any>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            unsubscribe()
-            reject(new Error('Authentication timeout'))
-          }, 10000) // 10 second timeout
-          
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
-            clearTimeout(timeout)
-            unsubscribe()
-            resolve(user)
-          })
-        })
+        const user = await initializeAuth()
         
         if (!user) {
           console.log('No authenticated user, redirecting to login')
@@ -164,8 +193,20 @@ const Dashboard: React.FC = () => {
 
         console.log('User authenticated:', user.email, 'Email verified:', user.emailVerified)
 
-        // Force token refresh to ensure we have a valid token
-        const idToken = await user.getIdToken(true)
+        // Force token refresh to ensure we have a valid token with retry
+        let idToken
+        try {
+          idToken = await user.getIdToken(true)
+        } catch (tokenError: any) {
+          console.error('Token refresh failed:', tokenError)
+          if (tokenError.code === 'auth/network-request-failed') {
+            // Retry once more
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            idToken = await user.getIdToken(true)
+          } else {
+            throw tokenError
+          }
+        }
         
         // Use the same API endpoint resolution logic as PricingSection
         const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
