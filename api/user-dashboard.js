@@ -291,17 +291,12 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
         });
       }
     } else {
-      // For monthly plans, we need to handle setup fee + monthly
-      const depositPriceId = PRICE_IDS[newPlanId].deposit;
+      // For monthly plans - existing users changing plans should NOT be charged setup fees again
+      // Setup fees are only for new customers, not plan changes
       
-      if (!depositPriceId) {
-        return res.status(500).json({ error: `Missing deposit price ID for ${newPlanId}` });
-      }
-
       // Validate that monthly price is recurring
       try {
         const monthlyPrice = await stripe.prices.retrieve(newPriceId);
-        const depositPrice = await stripe.prices.retrieve(depositPriceId);
         
         if (monthlyPrice.type !== 'recurring') {
           return res.status(400).json({ 
@@ -309,27 +304,25 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
             priceId: newPriceId
           });
         }
+        
+        console.log('Monthly price validated:', { id: monthlyPrice.id, type: monthlyPrice.type })
       } catch (priceError) {
-        console.error('Error retrieving monthly/deposit prices:', priceError);
+        console.error('Error retrieving monthly price:', priceError);
         return res.status(500).json({ 
-          error: 'Invalid price IDs for monthly plan'
+          error: 'Invalid price ID for monthly plan'
         });
       }
 
-      // Create a new subscription with both setup fee and monthly price
-      result = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [
-          { price: depositPriceId, quantity: 1 },
-          { price: newPriceId, quantity: 1 }
-        ],
+      // Update existing subscription to new monthly plan (no setup fee for plan changes)
+      result = await stripe.subscriptions.update(currentSubscription.id, {
+        items: [{
+          id: currentSubscription.items.data[0].id,
+          price: newPriceId,
+        }],
         proration_behavior: 'create_prorations',
       });
 
-      // Cancel the old subscription at period end
-      await stripe.subscriptions.update(currentSubscription.id, {
-        cancel_at_period_end: true
-      });
+      console.log('Updated subscription to new monthly plan:', result.id)
     }
 
     // Update user data in Firebase
