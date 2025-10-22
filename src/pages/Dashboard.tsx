@@ -410,8 +410,8 @@ const Dashboard: React.FC = () => {
         : (isDev ? '' : defaultProdApi)
       
       const endpoint = resolvedApiBase
-        ? `${resolvedApiBase.replace(/\/$/, "")}/api/change-plan`
-        : "/api/change-plan"
+        ? `${resolvedApiBase.replace(/\/$/, "")}/api/user-dashboard`
+        : "/api/user-dashboard"
 
       const response = await fetch(endpoint, {
         method: 'POST',

@@ -87,9 +87,9 @@ export default async function handler(req, res) {
     });
   }
 
-  // Only accept GET for fetching dashboard data
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
+  // Accept both GET (dashboard data) and POST (plan changes)
+  if (!["GET", "POST"].includes(req.method)) {
+    res.setHeader("Allow", "GET, POST");
     return res.status(405).end("Method Not Allowed");
   }
 
@@ -109,6 +109,183 @@ export default async function handler(req, res) {
 
     // Get user info
     const userRecord = await admin.auth().getUser(decoded.uid);
+    
+    // Handle POST request for plan changes
+    if (req.method === "POST") {
+      return await handlePlanChange(req, res, decoded, stripe, db);
+    }
+    
+    // Handle GET request for dashboard data
+    return await handleDashboardData(req, res, decoded, userRecord, stripe, db);
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message 
+    });
+  }
+}
+
+// Plan change handler function
+async function handlePlanChange(req, res, decoded, stripe, db) {
+  try {
+    // Extract request data
+    const { newPlanId, billingCycle } = req.body;
+
+    if (!newPlanId || !billingCycle) {
+      return res.status(400).json({ error: 'Missing required fields: newPlanId, billingCycle' });
+    }
+
+    if (!['full', 'monthly'].includes(billingCycle)) {
+      return res.status(400).json({ error: 'Invalid billing cycle. Must be "full" or "monthly"' });
+    }
+
+    // Map plan names to Stripe Price IDs
+    const PRICE_IDS = {
+      "credit-refresh": {
+        full: process.env.STRIPE_PRICE_REFRESH_FULL,
+        deposit: process.env.STRIPE_PRICE_REFRESH_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_REFRESH_MONTHLY,
+      },
+      "credit-rebuild": {
+        full: process.env.STRIPE_PRICE_REBUILD_FULL,
+        deposit: process.env.STRIPE_PRICE_REBUILD_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_REBUILD_MONTHLY,
+      },
+      "couples-advantage": {
+        full: process.env.STRIPE_PRICE_COUPLES_FULL,
+        deposit: process.env.STRIPE_PRICE_COUPLES_DEPOSIT,
+        monthly: process.env.STRIPE_PRICE_COUPLES_MONTHLY,
+      },
+    };
+
+    // Validate new plan
+    if (!PRICE_IDS[newPlanId]) {
+      return res.status(400).json({ error: `Invalid plan: ${newPlanId}` });
+    }
+
+    // Get customer's current subscription from Stripe
+    const customers = await stripe.customers.list({
+      email: decoded.email,
+      limit: 1
+    });
+
+    if (!customers.data.length) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const customer = customers.data[0];
+    
+    // Get active subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1
+    });
+
+    if (!subscriptions.data.length) {
+      return res.status(404).json({ error: 'No active subscription found' });
+    }
+
+    const currentSubscription = subscriptions.data[0];
+
+    // Determine new price ID based on billing cycle
+    let newPriceId;
+    if (billingCycle === 'full') {
+      newPriceId = PRICE_IDS[newPlanId].full;
+    } else {
+      newPriceId = PRICE_IDS[newPlanId].monthly;
+    }
+
+    if (!newPriceId) {
+      return res.status(500).json({ error: `Missing price ID for ${newPlanId} ${billingCycle} payment` });
+    }
+
+    let result;
+
+    if (billingCycle === 'full') {
+      // For full payment plans, update the subscription
+      result = await stripe.subscriptions.update(currentSubscription.id, {
+        items: [{
+          id: currentSubscription.items.data[0].id,
+          price: newPriceId,
+        }],
+        proration_behavior: 'create_prorations',
+      });
+    } else {
+      // For monthly plans, we need to handle setup fee + monthly
+      const depositPriceId = PRICE_IDS[newPlanId].deposit;
+      
+      if (!depositPriceId) {
+        return res.status(500).json({ error: `Missing deposit price ID for ${newPlanId}` });
+      }
+
+      // Create a new subscription with both setup fee and monthly price
+      result = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [
+          { price: depositPriceId, quantity: 1 },
+          { price: newPriceId, quantity: 1 }
+        ],
+        proration_behavior: 'create_prorations',
+      });
+
+      // Cancel the old subscription at period end
+      await stripe.subscriptions.update(currentSubscription.id, {
+        cancel_at_period_end: true
+      });
+    }
+
+    // Update user data in Firebase
+    const planNames = {
+      'credit-refresh': 'Credit Refresh',
+      'credit-rebuild': 'Credit Rebuild', 
+      'couples-advantage': 'Couples Advantage'
+    };
+
+    const userRef = db.ref(`users/${decoded.uid}`);
+    await userRef.update({
+      'planChange': {
+        newPlan: newPlanId,
+        newPlanName: planNames[newPlanId],
+        billingCycle: billingCycle,
+        subscriptionId: result.id,
+        changedAt: admin.database.ServerValue.TIMESTAMP,
+        status: 'active'
+      }
+    });
+
+    console.log(`Plan change for user ${decoded.uid}: ${newPlanId} (${billingCycle})`);
+
+    return res.status(200).json({
+      success: true,
+      subscriptionId: result.id,
+      status: result.status,
+      message: 'Plan change successful'
+    });
+
+  } catch (error) {
+    console.error('Plan change error:', error);
+    
+    // Handle specific Stripe errors
+    if (error.type === 'StripeCardError') {
+      return res.status(400).json({ 
+        error: 'Payment failed', 
+        details: error.message 
+      });
+    }
+    
+    return res.status(500).json({ 
+      error: 'Plan change failed', 
+      details: error.message 
+    });
+  }
+}
+
+// Dashboard data handler function
+async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
+  try {
     
     // Get user data from database
     const userRef = db.ref(`users/${decoded.uid}`);
