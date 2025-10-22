@@ -83,10 +83,10 @@ const AdminDashboard: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'plan-changes' && users.length > 0) {
+    if (activeTab === 'plan-changes') {
       fetchPlanChangeRequests()
     }
-  }, [activeTab, users])
+  }, [activeTab])
 
   const checkAdminAuth = async () => {
     try {
@@ -220,13 +220,22 @@ const AdminDashboard: React.FC = () => {
       const requestsData = snapshot.val()
       const requests: PlanChangeRequest[] = []
 
-      // Convert Firebase object to array and enrich with user data
+      // Convert Firebase object to array
       for (const [userId, requestData] of Object.entries(requestsData)) {
-        const user = users.find(u => u.uid === userId)
+        const data = requestData as any
         requests.push({
           userId,
-          userEmail: user?.email || 'Unknown',
-          ...(requestData as any)
+          userEmail: data.userEmail || 'Unknown',
+          currentPlan: data.currentPlan || 'N/A',
+          newPlan: data.newPlan || 'N/A',
+          currentPrice: data.currentPrice || 0,
+          newPrice: data.newPrice || 0,
+          paymentMode: data.paymentMode || 'monthly',
+          status: data.status || 'pending',
+          requestedAt: data.requestedAt || new Date().toISOString(),
+          reviewedBy: data.reviewedBy,
+          reviewedAt: data.reviewedAt,
+          adminComment: data.adminComment
         })
       }
 

@@ -274,21 +274,27 @@ async function handlePlanChangeRequest(req, res, decoded, stripe, db) {
         'couples-advantage': 'Couples Advantage'
       };
       
+      // Get current plan name from the current subscription
+      const currentPlanName = PRICE_TO_PLAN_MAP[currentPriceId] || 'Unknown Plan';
+      const newPlanName = planNames[newPlanId] || 'Unknown Plan';
+      
       // Store the plan change request in Firebase
       const requestRef = db.ref(`planChangeRequests/${decoded.uid}`);
       await requestRef.set({
         userId: decoded.uid,
         userEmail: decoded.email,
         userName: decoded.name || decoded.email,
+        currentPlan: currentPlanName,  // Plan name for display
+        newPlan: newPlanName,          // Plan name for display
+        currentPrice: currentAmount,   // Price in cents
+        newPrice: newAmount,          // Price in cents
+        paymentMode: billingCycle,    // 'full' or 'monthly'
         currentPlanId: currentPriceId,
         requestedPlanId: newPlanId,
-        requestedPlanName: planNames[newPlanId] || 'Unknown Plan',
-        requestedBilling: billingCycle,
         requestedPriceId: newPriceId,
         changeType: changeType,
-        reason: reason || 'No reason provided',
         status: 'pending',
-        requestedAt: admin.database.ServerValue.TIMESTAMP,
+        requestedAt: new Date().toISOString(),
         subscriptionId: currentSubscription.id,
         customerId: customer.id
       });
