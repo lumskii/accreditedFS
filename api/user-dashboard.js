@@ -417,6 +417,19 @@ async function handlePlanChange(req, res, decoded, stripe, db) {
 async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
   try {
     
+    // Create mapping from Stripe price IDs to plan names (used throughout this function)
+    const PRICE_TO_PLAN_MAP = {
+      [process.env.STRIPE_PRICE_REFRESH_FULL]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'full' },
+      [process.env.STRIPE_PRICE_REFRESH_MONTHLY]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'monthly' },
+      [process.env.STRIPE_PRICE_REFRESH_DEPOSIT]: { name: 'Credit Refresh', id: 'credit-refresh', type: 'deposit' },
+      [process.env.STRIPE_PRICE_REBUILD_FULL]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'full' },
+      [process.env.STRIPE_PRICE_REBUILD_MONTHLY]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'monthly' },
+      [process.env.STRIPE_PRICE_REBUILD_DEPOSIT]: { name: 'Credit Rebuild', id: 'credit-rebuild', type: 'deposit' },
+      [process.env.STRIPE_PRICE_COUPLES_FULL]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'full' },
+      [process.env.STRIPE_PRICE_COUPLES_MONTHLY]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'monthly' },
+      [process.env.STRIPE_PRICE_COUPLES_DEPOSIT]: { name: 'Couples Advantage', id: 'couples-advantage', type: 'deposit' },
+    };
+    
     // Get user data from database
     const userRef = db.ref(`users/${decoded.uid}`);
     const userSnap = await userRef.get();
@@ -502,11 +515,26 @@ async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
               currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days from now
             }
             
+            // Map Stripe price ID to actual plan name
+            const currentPriceId = activeSubscription.items.data[0]?.price?.id;
+            let planName = 'Unknown Plan';
+            let planId = null;
+            
+            if (currentPriceId && PRICE_TO_PLAN_MAP[currentPriceId]) {
+              const planInfo = PRICE_TO_PLAN_MAP[currentPriceId];
+              planName = planInfo.name;
+              planId = planInfo.id;
+            }
+            
+            console.log('Determined current plan:', { priceId: currentPriceId, planName, planId });
+            
             currentPlan = {
               id: activeSubscription.id,
               status: activeSubscription.status,
               currentPeriodEnd: currentPeriodEnd,
-              plan: activeSubscription.items.data[0]?.price?.nickname || 'Unknown Plan'
+              plan: planName,
+              planId: planId,
+              priceId: currentPriceId
             };
           }
         }
@@ -557,12 +585,20 @@ async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
           currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         }
         
+        // Map Stripe price ID to actual plan name for subscriptions too
+        const subPriceId = sub.items.data[0]?.price?.id;
+        let subPlanName = 'Unknown Plan';
+        
+        if (subPriceId && PRICE_TO_PLAN_MAP[subPriceId]) {
+          subPlanName = PRICE_TO_PLAN_MAP[subPriceId].name;
+        }
+        
         return {
           id: sub.id,
           status: sub.status,
           currentPeriodStart,
           currentPeriodEnd,
-          plan: sub.items.data[0]?.price?.nickname || 'Unknown Plan',
+          plan: subPlanName,
           amount: sub.items.data[0]?.price?.unit_amount ? sub.items.data[0].price.unit_amount / 100 : 0
         };
       }),
