@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   }
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Vary', 'Origin');
 
@@ -107,9 +107,9 @@ export default async function handler(req, res) {
     });
   }
 
-  // Accept both GET (dashboard data) and POST (plan changes)
-  if (!["GET", "POST"].includes(req.method)) {
-    res.setHeader("Allow", "GET, POST");
+  // Accept GET (dashboard data), POST (plan changes), and PATCH (execute approved changes)
+  if (!["GET", "POST", "PATCH"].includes(req.method)) {
+    res.setHeader("Allow", "GET, POST, PATCH");
     return res.status(405).end("Method Not Allowed");
   }
 
@@ -130,17 +130,14 @@ export default async function handler(req, res) {
     // Get user info
     const userRecord = await admin.auth().getUser(decoded.uid);
     
+    // Handle PATCH request for executing approved plan changes
+    if (req.method === "PATCH") {
+      return await handleExecuteApprovedPlanChange(req, res, decoded, stripe, db);
+    }
+    
     // Handle POST request for plan change requests (hybrid system)
     if (req.method === "POST") {
       return await handlePlanChangeRequest(req, res, decoded, stripe, db);
-    }
-    
-    // Handle PATCH request for executing approved plan changes (admin action)
-    if (req.method === "PATCH") {
-      const { action, requestId } = req.body;
-      if (action === 'executePlanChange') {
-        return await handleExecuteApprovedPlanChange(req, res, decoded, stripe, db);
-      }
     }
     
     // Handle GET request for dashboard data (includes plan change requests)
