@@ -71,6 +71,120 @@ export default async function handler(req, res) {
 
     console.log('Admin access verified for:', decoded.email);
 
+    // Handle query parameter for system health check
+    if (req.method === 'GET' && req.query.action === 'getSystemHealth') {
+      const status = {
+        api: 'healthy',
+        database: 'healthy',
+        stripe: 'healthy',
+        lastChecked: Date.now()
+      };
+
+      try {
+        // Check database
+        const testRef = admin.database().ref('.info/connected');
+        await testRef.once('value');
+      } catch (error) {
+        console.error('Database health check failed:', error);
+        status.database = 'down';
+      }
+
+      try {
+        // Check Stripe
+        await stripe.balance.retrieve();
+      } catch (error) {
+        console.error('Stripe health check failed:', error);
+        status.stripe = 'down';
+      }
+
+      return res.status(200).json({ status });
+    }
+
+    // Handle query parameter for analytics
+    if (req.method === 'GET' && req.query.action === 'getAnalytics') {
+      try {
+        // Get user count from database
+        const usersRef = admin.database().ref('users');
+        const usersSnap = await usersRef.once('value');
+        const usersData = usersSnap.val() || {};
+        
+        // Filter out admin users
+        const nonAdminUsers = Object.entries(usersData).filter(([uid, userData]) => {
+          return !userData.roles || !userData.roles.admin;
+        });
+        
+        const totalUsers = nonAdminUsers.length;
+        
+        // Count active subscriptions
+        let activeSubscriptions = 0;
+        nonAdminUsers.forEach(([uid, userData]) => {
+          const flow = userData.flow || {};
+          if (flow.plan || (userData.currentPlan && userData.currentPlan.status === 'active')) {
+            activeSubscriptions++;
+          }
+        });
+
+        // Get revenue data from Stripe
+        let totalRevenue = 0;
+        let monthlyRecurringRevenue = 0;
+        
+        try {
+          // Get all successful charges (total revenue)
+          const charges = await stripe.charges.list({
+            limit: 100
+          });
+          
+          totalRevenue = charges.data
+            .filter(charge => charge.paid && !charge.refunded)
+            .reduce((sum, charge) => sum + charge.amount, 0);
+
+          // Get active subscriptions for MRR
+          const subscriptions = await stripe.subscriptions.list({
+            status: 'active',
+            limit: 100
+          });
+          
+          monthlyRecurringRevenue = subscriptions.data.reduce((sum, sub) => {
+            // Get the plan amount
+            if (sub.items && sub.items.data.length > 0) {
+              const item = sub.items.data[0];
+              const amount = item.price.unit_amount || 0;
+              
+              // Convert to monthly if annual
+              if (item.price.recurring && item.price.recurring.interval === 'year') {
+                return sum + (amount / 12);
+              }
+              return sum + amount;
+            }
+            return sum;
+          }, 0);
+        } catch (stripeError) {
+          console.error('Error fetching Stripe revenue data:', stripeError);
+          // Continue without revenue data rather than failing completely
+        }
+
+        const averageRevenuePerUser = activeSubscriptions > 0 
+          ? totalRevenue / activeSubscriptions 
+          : 0;
+
+        return res.status(200).json({
+          analytics: {
+            totalUsers,
+            activeSubscriptions,
+            totalRevenue,
+            monthlyRecurringRevenue,
+            averageRevenuePerUser
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        return res.status(500).json({
+          error: 'Failed to fetch analytics',
+          details: error.message
+        });
+      }
+    }
+
     // Handle query parameter for fetching promo codes
     if (req.method === 'GET' && req.query.action === 'getPromoCodes') {
       try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ExternalLink, Tag, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
+import { ExternalLink, Tag, RefreshCw, AlertCircle, CheckCircle, Activity, TrendingUp, Users as UsersIcon, DollarSign } from 'lucide-react'
 
 type PromoCode = {
   id: string
@@ -14,13 +14,33 @@ type PromoCode = {
   created: number
 }
 
+type SystemStatus = {
+  api: 'healthy' | 'degraded' | 'down'
+  database: 'healthy' | 'degraded' | 'down'
+  stripe: 'healthy' | 'degraded' | 'down'
+  lastChecked: number
+}
+
+type Analytics = {
+  totalUsers: number
+  activeSubscriptions: number
+  totalRevenue: number
+  monthlyRecurringRevenue: number
+  averageRevenuePerUser: number
+}
+
 const AdminSettings: React.FC = () => {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [checkingHealth, setCheckingHealth] = useState(false)
 
   useEffect(() => {
     fetchPromoCodes()
+    checkSystemHealth()
+    fetchAnalytics()
   }, [])
 
   const fetchPromoCodes = async () => {
@@ -80,6 +100,111 @@ const AdminSettings: React.FC = () => {
     }
   }
 
+  const checkSystemHealth = async () => {
+    setCheckingHealth(true)
+    try {
+      const { getAuth } = await import('firebase/auth')
+      const { default: app } = await import('../firebase')
+      const auth = getAuth(app)
+      const user = auth.currentUser
+
+      if (!user) {
+        throw new Error('No authenticated user')
+      }
+
+      const token = await user.getIdToken()
+      
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users?action=getSystemHealth`
+        : `/api/admin-users?action=getSystemHealth`
+      
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch system health')
+      }
+
+      const data = await response.json()
+      setSystemStatus(data.status)
+    } catch (err: any) {
+      console.error('Error checking system health:', err)
+      setSystemStatus({
+        api: 'down',
+        database: 'down',
+        stripe: 'down',
+        lastChecked: Date.now()
+      })
+    } finally {
+      setCheckingHealth(false)
+    }
+  }
+
+  const fetchAnalytics = async () => {
+    try {
+      const { getAuth } = await import('firebase/auth')
+      const { default: app } = await import('../firebase')
+      const auth = getAuth(app)
+      const user = auth.currentUser
+
+      if (!user) {
+        throw new Error('No authenticated user')
+      }
+
+      const token = await user.getIdToken()
+      
+      const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+      const isDev = import.meta.env.MODE === 'development'
+      const defaultProdApi = 'https://api.accreditedfs.com'
+      const isBrowser = typeof window !== 'undefined'
+      const currentOrigin = isBrowser ? window.location.origin : ''
+      const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+      const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+      const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+        ? envApiBase
+        : (isDev ? '' : defaultProdApi)
+
+      const endpoint = resolvedApiBase
+        ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users?action=getAnalytics`
+        : `/api/admin-users?action=getAnalytics`
+      
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics')
+      }
+
+      const data = await response.json()
+      setAnalytics(data.analytics)
+    } catch (err: any) {
+      console.error('Error fetching analytics:', err)
+    }
+  }
+
   const formatDiscount = (code: PromoCode) => {
     if (code.percentOff) {
       return `${code.percentOff}% off`
@@ -92,6 +217,35 @@ const AdminSettings: React.FC = () => {
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString()
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount / 100)
+  }
+
+  const getStatusColor = (status: 'healthy' | 'degraded' | 'down') => {
+    switch (status) {
+      case 'healthy':
+        return 'text-green-600 bg-green-100'
+      case 'degraded':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'down':
+        return 'text-red-600 bg-red-100'
+    }
+  }
+
+  const getStatusIcon = (status: 'healthy' | 'degraded' | 'down') => {
+    switch (status) {
+      case 'healthy':
+        return <CheckCircle className="w-5 h-5" />
+      case 'degraded':
+        return <AlertCircle className="w-5 h-5" />
+      case 'down':
+        return <AlertCircle className="w-5 h-5" />
+    }
   }
 
   return (
@@ -183,6 +337,147 @@ const AdminSettings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* System Status Section */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              System Status
+            </h3>
+            <button
+              onClick={checkSystemHealth}
+              disabled={checkingHealth}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${checkingHealth ? 'animate-spin' : ''}`} />
+              Check Status
+            </button>
+          </div>
+
+          {systemStatus ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">API</p>
+                    <p className={`mt-1 text-sm font-semibold capitalize ${getStatusColor(systemStatus.api)}`}>
+                      {systemStatus.api}
+                    </p>
+                  </div>
+                  <div className={`${getStatusColor(systemStatus.api)} p-2 rounded-full`}>
+                    {getStatusIcon(systemStatus.api)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Database</p>
+                    <p className={`mt-1 text-sm font-semibold capitalize ${getStatusColor(systemStatus.database)}`}>
+                      {systemStatus.database}
+                    </p>
+                  </div>
+                  <div className={`${getStatusColor(systemStatus.database)} p-2 rounded-full`}>
+                    {getStatusIcon(systemStatus.database)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Stripe</p>
+                    <p className={`mt-1 text-sm font-semibold capitalize ${getStatusColor(systemStatus.stripe)}`}>
+                      {systemStatus.stripe}
+                    </p>
+                  </div>
+                  <div className={`${getStatusColor(systemStatus.stripe)} p-2 rounded-full`}>
+                    {getStatusIcon(systemStatus.stripe)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Activity className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-2 text-sm text-gray-500">Click "Check Status" to verify system health</p>
+            </div>
+          )}
+
+          {systemStatus && (
+            <p className="mt-4 text-xs text-gray-400">
+              Last checked: {new Date(systemStatus.lastChecked).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Analytics Section */}
+      {analytics && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              Platform Analytics
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Total Users</p>
+                    <p className="mt-2 text-2xl font-bold text-blue-900">{analytics.totalUsers}</p>
+                  </div>
+                  <UsersIcon className="h-8 w-8 text-blue-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-600">Active Subscriptions</p>
+                    <p className="mt-2 text-2xl font-bold text-green-900">{analytics.activeSubscriptions}</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600">Total Revenue</p>
+                    <p className="mt-2 text-2xl font-bold text-purple-900">
+                      {formatCurrency(analytics.totalRevenue)}
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-purple-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-yellow-600">Monthly Recurring Revenue</p>
+                    <p className="mt-2 text-2xl font-bold text-yellow-900">
+                      {formatCurrency(analytics.monthlyRecurringRevenue)}
+                    </p>
+                  </div>
+                  <Activity className="h-8 w-8 text-yellow-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Average Revenue Per User (ARPU)</span>
+                <span className="font-medium text-gray-900">
+                  {formatCurrency(analytics.averageRevenuePerUser)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Promotion Codes Section */}
       <div className="bg-white shadow rounded-lg">

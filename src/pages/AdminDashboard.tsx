@@ -210,10 +210,34 @@ const AdminDashboard: React.FC = () => {
         console.error('Error fetching disputes:', error)
       }
       
+      // Fetch total revenue from Stripe via analytics endpoint
+      let totalRevenue = 0
+      try {
+        const analyticsEndpoint = resolvedApiBase
+          ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users?action=getAnalytics`
+          : `/api/admin-users?action=getAnalytics`
+        
+        const analyticsResponse = await fetch(analyticsEndpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        })
+        
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json()
+          totalRevenue = analyticsData.analytics?.totalRevenue || 0
+        }
+      } catch (error) {
+        console.error('Error fetching revenue data:', error)
+      }
+      
       setStats({
         totalUsers,
         activeSubscriptions,
-        totalRevenue: 0, // TODO: Calculate from Stripe data when available
+        totalRevenue,
         pendingDisputes: pendingDisputesCount
       })
       
@@ -610,7 +634,12 @@ const AdminDashboard: React.FC = () => {
                     <div className="ml-5 w-0 flex-1">
                       <dl>
                         <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-                        <dd className="text-lg font-medium text-gray-900">${stats.totalRevenue}</dd>
+                        <dd className="text-lg font-medium text-gray-900">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD'
+                          }).format(stats.totalRevenue / 100)}
+                        </dd>
                       </dl>
                     </div>
                   </div>
