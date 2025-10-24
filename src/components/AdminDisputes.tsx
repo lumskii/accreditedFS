@@ -36,7 +36,7 @@ const AdminDisputes: React.FC = () => {
   const [savingNote, setSavingNote] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [users, setUsers] = useState<Array<{uid: string, email: string}>>([])
+  const [users, setUsers] = useState<Array<{uid: string, email: string, displayName?: string}>>([])
   const [createFormData, setCreateFormData] = useState({
     userId: '',
     userEmail: '',
@@ -96,18 +96,56 @@ const AdminDisputes: React.FC = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const usersRef = ref(database, 'users')
-        const snapshot = await get(usersRef)
-        if (snapshot.exists()) {
-          const usersData = snapshot.val()
-          const usersList = Object.entries(usersData)
-            .filter(([_, userData]: [string, any]) => !userData.roles?.admin) // Exclude admins
-            .map(([uid, userData]: [string, any]) => ({
-              uid,
-              email: userData.email || 'No email'
-            }))
-          setUsers(usersList)
+        const { getAuth } = await import('firebase/auth')
+        const { default: app } = await import('../firebase')
+        const auth = getAuth(app)
+        const user = auth.currentUser
+
+        if (!user) {
+          console.error('No authenticated user')
+          return
         }
+
+        // Get auth token
+        const token = await user.getIdToken()
+        
+        // API endpoint configuration
+        const envApiBase = import.meta.env.VITE_API_BASE as string | undefined
+        const isDev = import.meta.env.MODE === 'development'
+        const defaultProdApi = 'https://api.accreditedfs.com'
+        const isBrowser = typeof window !== 'undefined'
+        const currentOrigin = isBrowser ? window.location.origin : ''
+        const onHttpsOrigin = isBrowser && currentOrigin.startsWith('https://')
+        const looksLikeLocal = !!envApiBase && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)/.test(envApiBase)
+        const resolvedApiBase = envApiBase && !(onHttpsOrigin && looksLikeLocal)
+          ? envApiBase
+          : (isDev ? '' : defaultProdApi)
+
+        const endpoint = resolvedApiBase
+          ? `${resolvedApiBase.replace(/\/$/, '')}/api/admin-users`
+          : `/api/admin-users`
+        
+        // Fetch users data from admin API
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch users')
+        }
+
+        const data = await response.json()
+        const usersList = data.users.map((u: any) => ({
+          uid: u.uid,
+          email: u.email || 'No email',
+          displayName: u.displayName || ''
+        }))
+        setUsers(usersList)
       } catch (error) {
         console.error('Error fetching users:', error)
       }
@@ -410,7 +448,7 @@ const AdminDisputes: React.FC = () => {
                       <option value="">Select a user...</option>
                       {users.map((user) => (
                         <option key={user.uid} value={user.uid}>
-                          {user.email}
+                          {user.displayName ? `${user.displayName} (${user.email})` : user.email}
                         </option>
                       ))}
                     </select>
