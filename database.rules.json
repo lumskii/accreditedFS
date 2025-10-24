@@ -8,7 +8,7 @@
       }
     },
     "userDisputes": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
+      ".read": "auth != null",
       "$disputeId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
         ".write": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
