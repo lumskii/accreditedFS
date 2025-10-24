@@ -173,6 +173,7 @@ export default async function handler(req, res) {
       mode: mode === "full" ? "payment" : "subscription",
       line_items,
       customer: stripeCustomerId,
+      allow_promotion_codes: true, // Enable promo code field in Stripe checkout
       success_url: `https://accreditedfs.com/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://accreditedfs.com/cancel`,
     });

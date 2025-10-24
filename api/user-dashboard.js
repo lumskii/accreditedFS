@@ -368,6 +368,7 @@ async function handlePlanChangeRequest(req, res, decoded, stripe, db) {
             price: newPriceId,
             quantity: 1,
           }],
+          allow_promotion_codes: true, // Enable promo code field in Stripe checkout
           success_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?session_id={CHECKOUT_SESSION_ID}&plan_change=success`,
           cancel_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?plan_change=cancelled`,
           metadata: {
@@ -563,6 +564,7 @@ async function handleExecuteApprovedPlanChange(req, res, decoded, stripe, db) {
         payment_method_types: ['card'],
         mode: 'payment',
         line_items: [{ price: requestedPriceId, quantity: 1 }],
+        allow_promotion_codes: true, // Enable promo code field in Stripe checkout
         success_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?session_id={CHECKOUT_SESSION_ID}&plan_change=success`,
         cancel_url: `${process.env.VITE_SITE_URL || 'https://accreditedfs.com'}/dashboard?plan_change=cancelled`,
         metadata: {
