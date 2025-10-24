@@ -188,11 +188,32 @@ const AdminDashboard: React.FC = () => {
         user.currentPlan && user.currentPlan.status === 'active'
       ).length
       
+      // Fetch dispute requests to calculate pending disputes
+      let pendingDisputesCount = 0
+      try {
+        const { ref, get } = await import('firebase/database')
+        const { database } = await import('../firebase')
+        const disputesRef = ref(database, 'disputeRequests')
+        const disputesSnapshot = await get(disputesRef)
+        
+        if (disputesSnapshot.exists()) {
+          const disputes = disputesSnapshot.val()
+          // Count disputes that are pending or in-progress
+          pendingDisputesCount = Object.values(disputes).filter((dispute: any) => {
+            if (dispute.status?.state === 'resolved') return false
+            if (dispute.status?.error) return false // Errors are not "pending"
+            return true // Count pending and in-progress
+          }).length
+        }
+      } catch (error) {
+        console.error('Error fetching disputes:', error)
+      }
+      
       setStats({
         totalUsers,
         activeSubscriptions,
-        totalRevenue: 0, // You can calculate this from payment data
-        pendingDisputes: 0 // You can calculate this from dispute data
+        totalRevenue: 0, // TODO: Calculate from Stripe data when available
+        pendingDisputes: pendingDisputesCount
       })
       
       setLoading(false)

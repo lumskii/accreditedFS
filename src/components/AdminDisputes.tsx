@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { database } from '../firebase'
-import { ref, onValue, off } from 'firebase/database'
+import { ref, onValue } from 'firebase/database'
 import { Filter, Clock, CheckCircle, AlertCircle, Play } from 'lucide-react'
 
 type DisputeStatus = 'all' | 'pending' | 'in-progress' | 'resolved' | 'error'
@@ -23,14 +23,21 @@ const AdminDisputes: React.FC = () => {
 
   useEffect(() => {
     const requestsRef = ref(database, 'disputeRequests')
-    const listener = onValue(requestsRef, (snapshot) => {
-      const val = snapshot.val() || {}
-      setRequests(val)
-      setLoading(false)
-    })
+    const listener = onValue(
+      requestsRef, 
+      (snapshot) => {
+        const val = snapshot.val() || {}
+        setRequests(val)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error loading disputes:', error)
+        setLoading(false)
+      }
+    )
 
     return () => {
-      off(requestsRef)
+      listener() // Call the unsubscribe function returned by onValue
     }
   }, [])
 
