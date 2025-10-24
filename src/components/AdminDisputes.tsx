@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { database } from '../firebase'
-import { ref, onValue, update } from 'firebase/database'
-import { Filter, Clock, CheckCircle, AlertCircle, Play, Search, MessageSquare, User, Save, X } from 'lucide-react'
+import { ref, onValue, update, push, set, get } from 'firebase/database'
+import { Filter, Clock, CheckCircle, AlertCircle, Play, Search, MessageSquare, User, Save, X, Plus } from 'lucide-react'
 
 type DisputeStatus = 'all' | 'pending' | 'in-progress' | 'resolved' | 'error'
 
@@ -34,6 +34,18 @@ const AdminDisputes: React.FC = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [noteText, setNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [users, setUsers] = useState<Array<{uid: string, email: string}>>([])
+  const [createFormData, setCreateFormData] = useState({
+    userId: '',
+    userEmail: '',
+    creditorName: '',
+    accountNumber: '',
+    disputeReason: '',
+    bureau: [] as string[],
+    adminNotes: ''
+  })
 
   useEffect(() => {
     console.log('=== AdminDisputes component mounted ===')
@@ -78,6 +90,29 @@ const AdminDisputes: React.FC = () => {
       console.log('=== AdminDisputes component unmounting ===')
       listener()
     }
+  }, [])
+
+  // Fetch users list for create dispute form
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersRef = ref(database, 'users')
+        const snapshot = await get(usersRef)
+        if (snapshot.exists()) {
+          const usersData = snapshot.val()
+          const usersList = Object.entries(usersData)
+            .filter(([_, userData]: [string, any]) => !userData.roles?.admin) // Exclude admins
+            .map(([uid, userData]: [string, any]) => ({
+              uid,
+              email: userData.email || 'No email'
+            }))
+          setUsers(usersList)
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      }
+    }
+    fetchUsers()
   }, [])
 
   const fetchUserPlans = async (disputes: Record<string, DisputeRequest>) => {
@@ -145,6 +180,70 @@ const AdminDisputes: React.FC = () => {
       console.error('Error updating status:', error)
       alert('Failed to update status')
     }
+  }
+
+  const handleCreateDispute = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!createFormData.userId || !createFormData.creditorName || !createFormData.accountNumber || 
+        !createFormData.disputeReason || createFormData.bureau.length === 0) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    setCreating(true)
+    try {
+      const disputesRef = ref(database, 'userDisputes')
+      const newDisputeRef = push(disputesRef)
+      
+      await set(newDisputeRef, {
+        userId: createFormData.userId,
+        userEmail: createFormData.userEmail,
+        creditorName: createFormData.creditorName.trim(),
+        accountNumber: createFormData.accountNumber.trim(),
+        disputeReason: createFormData.disputeReason.trim(),
+        bureau: createFormData.bureau,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        adminNotes: createFormData.adminNotes.trim() || ''
+      })
+
+      // Reset form
+      setCreateFormData({
+        userId: '',
+        userEmail: '',
+        creditorName: '',
+        accountNumber: '',
+        disputeReason: '',
+        bureau: [],
+        adminNotes: ''
+      })
+      setShowCreateForm(false)
+      alert('Dispute created successfully!')
+    } catch (error) {
+      console.error('Error creating dispute:', error)
+      alert('Failed to create dispute')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleBureauToggle = (bureau: string) => {
+    setCreateFormData(prev => ({
+      ...prev,
+      bureau: prev.bureau.includes(bureau)
+        ? prev.bureau.filter(b => b !== bureau)
+        : [...prev.bureau, bureau]
+    }))
+  }
+
+  const handleUserSelect = (userId: string) => {
+    const user = users.find(u => u.uid === userId)
+    setCreateFormData(prev => ({
+      ...prev,
+      userId,
+      userEmail: user?.email || ''
+    }))
   }
 
   const startEditingNote = (disputeId: string, currentNote?: string) => {
@@ -250,9 +349,18 @@ const AdminDisputes: React.FC = () => {
           <h3 className="text-lg leading-6 font-medium text-gray-900">
             Dispute Requests
           </h3>
-          <div className="flex items-center text-sm text-gray-500">
-            <Filter className="w-4 h-4 mr-1" />
-            Filter by status
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Dispute
+            </button>
+            <div className="flex items-center text-sm text-gray-500">
+              <Filter className="w-4 h-4 mr-1" />
+              Filter by status
+            </div>
           </div>
         </div>
 
@@ -271,6 +379,145 @@ const AdminDisputes: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Create Dispute Modal */}
+        {showCreateForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Create New Dispute</h3>
+                  <button
+                    onClick={() => setShowCreateForm(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateDispute} className="space-y-4">
+                  {/* User Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select User <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={createFormData.userId}
+                      onChange={(e) => handleUserSelect(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select a user...</option>
+                      {users.map((user) => (
+                        <option key={user.uid} value={user.uid}>
+                          {user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Creditor Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Creditor Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createFormData.creditorName}
+                      onChange={(e) => setCreateFormData(prev => ({ ...prev, creditorName: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., Capital One, Experian, etc."
+                      required
+                    />
+                  </div>
+
+                  {/* Account Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Account Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createFormData.accountNumber}
+                      onChange={(e) => setCreateFormData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Last 4 digits or full account number"
+                      required
+                    />
+                  </div>
+
+                  {/* Dispute Reason */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason for Dispute <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={createFormData.disputeReason}
+                      onChange={(e) => setCreateFormData(prev => ({ ...prev, disputeReason: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={4}
+                      placeholder="Describe the reason for disputing this item"
+                      required
+                    />
+                  </div>
+
+                  {/* Credit Bureaus */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Credit Bureau(s) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="space-y-2">
+                      {['Equifax', 'Experian', 'TransUnion'].map((bureau) => (
+                        <label key={bureau} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={createFormData.bureau.includes(bureau)}
+                            onChange={() => handleBureauToggle(bureau)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-gray-700">{bureau}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Admin Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Admin Notes (Optional)
+                    </label>
+                    <textarea
+                      value={createFormData.adminNotes}
+                      onChange={(e) => setCreateFormData(prev => ({ ...prev, adminNotes: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Add any internal notes about this dispute"
+                    />
+                  </div>
+
+                  {/* Submit Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateForm(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      disabled={creating}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={creating}
+                    >
+                      {creating ? 'Creating...' : 'Create Dispute'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Status Filter Buttons */}
         <div className="flex flex-wrap gap-2 mb-6">

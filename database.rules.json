@@ -11,7 +11,7 @@
       ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
       "$disputeId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
-        ".write": "auth != null && (!data.exists() && newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('roles').child('admin').val() == true)",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
         ".validate": "newData.hasChildren(['userId','userEmail','creditorName','accountNumber','disputeReason','bureau','status','createdAt'])"
       }
     },
