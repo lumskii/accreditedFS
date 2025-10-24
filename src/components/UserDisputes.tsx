@@ -161,13 +161,6 @@ const UserDisputes: React.FC = () => {
                   </div>
                 )}
 
-                {dispute.adminNotes && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm font-medium text-blue-900">Admin Notes:</p>
-                    <p className="text-blue-800 text-sm mt-1">{dispute.adminNotes}</p>
-                  </div>
-                )}
-
                 <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t">
                   <span>Submitted: {new Date(dispute.createdAt).toLocaleDateString()}</span>
                   {dispute.resolvedAt && (

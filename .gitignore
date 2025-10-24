@@ -19,6 +19,14 @@ build/
 # Ignore env files inside api folder
 api/.env
 
+# Stripe credentials tracker (NEVER commit live keys)
+STRIPE_LIVE_CREDENTIALS.md
+PLAN_CHANGE_FEATURE.md
+QUICK_START_LIVE_MODE.md
+STRIPE_LIVE_MODE_MIGRATION.md
+STRIPE_MIGRATION_README.md
+check-stripe-ready.sh
+
 # Firebase
 .firebase/
 firebase-debug.log
