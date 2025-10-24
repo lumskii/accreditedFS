@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Initialize Firebase Admin if not already done
 if (!admin.apps.length) {
@@ -69,6 +70,43 @@ export default async function handler(req, res) {
     }
 
     console.log('Admin access verified for:', decoded.email);
+
+    // Handle query parameter for fetching promo codes
+    if (req.method === 'GET' && req.query.action === 'getPromoCodes') {
+      try {
+        // Fetch promotion codes from Stripe
+        const promoCodes = await stripe.promotionCodes.list({
+          limit: 100,
+          active: true,
+          expand: ['data.coupon']
+        });
+
+        // Format the response
+        const formattedCodes = promoCodes.data.map(promoCode => ({
+          id: promoCode.id,
+          code: promoCode.code,
+          active: promoCode.active,
+          percentOff: promoCode.coupon.percent_off,
+          amountOff: promoCode.coupon.amount_off,
+          currency: promoCode.coupon.currency,
+          redeemBy: promoCode.expires_at,
+          maxRedemptions: promoCode.max_redemptions,
+          timesRedeemed: promoCode.times_redeemed,
+          created: promoCode.created
+        }));
+
+        return res.status(200).json({
+          promoCodes: formattedCodes,
+          total: promoCodes.data.length
+        });
+      } catch (error) {
+        console.error('Error fetching promo codes from Stripe:', error);
+        return res.status(500).json({
+          error: 'Failed to fetch promotion codes',
+          details: error.message
+        });
+      }
+    }
 
     // Handle POST requests (approve/deny plan change)
     if (req.method === 'POST') {
