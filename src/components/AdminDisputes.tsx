@@ -27,6 +27,15 @@ const AdminDisputes: React.FC = () => {
       requestsRef, 
       (snapshot) => {
         const val = snapshot.val() || {}
+        console.log('Dispute requests data:', val)
+        console.log('Number of disputes:', Object.keys(val).length)
+        
+        // Log structure of first dispute for debugging
+        const firstDispute = Object.values(val)[0] as any
+        if (firstDispute) {
+          console.log('Sample dispute structure:', firstDispute)
+        }
+        
         setRequests(val)
         setLoading(false)
       },
@@ -41,10 +50,35 @@ const AdminDisputes: React.FC = () => {
     }
   }, [])
 
-  // Get dispute status based on data
+  // Get dispute status based on data - check multiple possible field patterns
   const getDisputeStatus = (dispute: DisputeRequest): DisputeStatus => {
-    if (dispute.status?.error) return 'error'
+    // Check for explicit state field first
     if (dispute.status?.state) return dispute.status.state
+    
+    // Check for error status
+    if (dispute.status?.error) return 'error'
+    
+    // Check for other common patterns in the database
+    const disputeAny = dispute as any
+    
+    // Check if resolved field exists
+    if (disputeAny.resolved === true || disputeAny.status?.resolved === true) {
+      return 'resolved'
+    }
+    
+    // Check if inProgress field exists
+    if (disputeAny.inProgress === true || disputeAny.status?.inProgress === true) {
+      return 'in-progress'
+    }
+    
+    // Check status message for clues
+    if (dispute.status?.message) {
+      const msg = dispute.status.message.toLowerCase()
+      if (msg.includes('resolved') || msg.includes('completed')) return 'resolved'
+      if (msg.includes('progress') || msg.includes('processing')) return 'in-progress'
+      if (msg.includes('error') || msg.includes('failed')) return 'error'
+    }
+    
     // Default to pending if no specific state
     return 'pending'
   }
