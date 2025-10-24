@@ -1,6 +1,7 @@
 {
   "rules": {
     "disputeRequests": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
       "$pushId": {
         ".read": "root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
         ".write": "!data.exists() && newData.hasChildren(['email','createdAt'])"
