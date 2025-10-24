@@ -863,6 +863,21 @@ async function handleDashboardData(req, res, decoded, userRecord, stripe, db) {
       agreement: userData.agreement || { agreed: false }
     };
 
+    // Automatically calculate disputes from userDisputes collection
+    try {
+      const disputesRef = db.ref('userDisputes');
+      const disputesSnap = await disputesRef.orderByChild('userId').equalTo(decoded.uid).get();
+      if (disputesSnap.exists()) {
+        const disputes = disputesSnap.val();
+        const disputesList = Object.values(disputes);
+        dashboardData.progress.disputesSubmitted = disputesList.length;
+        dashboardData.progress.disputesResolved = disputesList.filter(d => d.status === 'resolved').length;
+      }
+    } catch (disputeError) {
+      console.warn('Error fetching user disputes:', disputeError);
+      // Continue with manual counts if automatic fails
+    }
+
     // Add pending plan change request if exists (only show pending/approved, not executed/denied)
     try {
       const planChangeRequestRef = db.ref(`planChangeRequests/${decoded.uid}`);

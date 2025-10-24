@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   CreditCard, 
@@ -12,9 +12,12 @@ import {
   Clock,
   Star,
   Download,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react'
 import PlanChangeModal from '../components/PlanChangeModal'
+
+const UserDisputes = lazy(() => import('../components/UserDisputes'))
 
 interface DashboardData {
   user: {
@@ -123,7 +126,7 @@ const Dashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress' | 'agreements'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'progress' | 'disputes' | 'agreements'>('overview')
   const [uploads, setUploads] = useState<Array<{name: string, url: string, uploadedAt: string}>>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -733,6 +736,7 @@ const Dashboard: React.FC = () => {
               { id: 'overview', label: 'Overview', icon: User },
               { id: 'payments', label: 'Payments', icon: CreditCard },
               { id: 'progress', label: 'Progress', icon: TrendingUp },
+              { id: 'disputes', label: 'Disputes', icon: MessageSquare },
               { id: 'agreements', label: 'Agreements', icon: FileText }
             ].map(({ id, label, icon: Icon }) => (
               <button
@@ -1238,6 +1242,17 @@ const Dashboard: React.FC = () => {
               })()}
             </div>
           </div>
+        )}
+
+        {/* Disputes Tab */}
+        {activeTab === 'disputes' && (
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          }>
+            <UserDisputes />
+          </Suspense>
         )}
 
         {/* Agreements Tab */}

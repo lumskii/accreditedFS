@@ -28,7 +28,7 @@ const EmailSubscription: React.FC = () => {
 
     setIsSubmitting(true)
     try {
-      const requestsRef = ref(database, 'disputeRequests')
+      const requestsRef = ref(database, 'publicDisputeLeads')
       const newRef = push(requestsRef)
       await set(newRef, {
         email: trimmed,

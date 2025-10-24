@@ -6,16 +6,17 @@ import { Filter, Clock, CheckCircle, AlertCircle, Play, Search, MessageSquare, U
 type DisputeStatus = 'all' | 'pending' | 'in-progress' | 'resolved' | 'error'
 
 type DisputeRequest = {
-  email: string
-  createdAt?: string
-  userId?: string
-  status?: { 
-    error?: boolean
-    message?: string
-    updatedAt?: string
-    state?: 'pending' | 'in-progress' | 'resolved'
-  }
+  userId: string
+  userEmail: string
+  creditorName: string
+  accountNumber: string
+  disputeReason: string
+  bureau: string[]
+  status: 'pending' | 'in-progress' | 'resolved' | 'rejected'
+  createdAt: string
+  resolvedAt?: string
   adminNotes?: string
+  userNotes?: string
 }
 
 type UserPlan = {
@@ -38,8 +39,8 @@ const AdminDisputes: React.FC = () => {
     console.log('=== AdminDisputes component mounted ===')
     console.log('Database object:', database)
     
-    const requestsRef = ref(database, 'disputeRequests')
-    console.log('Created ref for disputeRequests:', requestsRef)
+    const requestsRef = ref(database, 'userDisputes')
+    console.log('Created ref for userDisputes:', requestsRef)
     
     const listener = onValue(
       requestsRef, 
@@ -115,10 +116,9 @@ const AdminDisputes: React.FC = () => {
   const handleSaveNote = async (disputeId: string) => {
     setSavingNote(true)
     try {
-      const disputeRef = ref(database, `disputeRequests/${disputeId}`)
+      const disputeRef = ref(database, `userDisputes/${disputeId}`)
       await update(disputeRef, {
-        adminNotes: noteText,
-        'status/updatedAt': Date.now()
+        adminNotes: noteText
       })
       
       setEditingNoteId(null)
@@ -128,6 +128,22 @@ const AdminDisputes: React.FC = () => {
       alert('Failed to save note')
     } finally {
       setSavingNote(false)
+    }
+  }
+
+  const handleStatusChange = async (disputeId: string, newStatus: 'pending' | 'in-progress' | 'resolved' | 'rejected') => {
+    try {
+      const disputeRef = ref(database, `userDisputes/${disputeId}`)
+      const updates: any = { status: newStatus }
+      
+      if (newStatus === 'resolved') {
+        updates.resolvedAt = new Date().toISOString()
+      }
+      
+      await update(disputeRef, updates)
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Failed to update status')
     }
   }
 
@@ -141,37 +157,10 @@ const AdminDisputes: React.FC = () => {
     setNoteText('')
   }
 
-  // Get dispute status based on data - check multiple possible field patterns
+  // Get dispute status - now directly from the status field
   const getDisputeStatus = (dispute: DisputeRequest): DisputeStatus => {
-    // Check for explicit state field first
-    if (dispute.status?.state) return dispute.status.state
-    
-    // Check for error status
-    if (dispute.status?.error) return 'error'
-    
-    // Check for other common patterns in the database
-    const disputeAny = dispute as any
-    
-    // Check if resolved field exists
-    if (disputeAny.resolved === true || disputeAny.status?.resolved === true) {
-      return 'resolved'
-    }
-    
-    // Check if inProgress field exists
-    if (disputeAny.inProgress === true || disputeAny.status?.inProgress === true) {
-      return 'in-progress'
-    }
-    
-    // Check status message for clues
-    if (dispute.status?.message) {
-      const msg = dispute.status.message.toLowerCase()
-      if (msg.includes('resolved') || msg.includes('completed')) return 'resolved'
-      if (msg.includes('progress') || msg.includes('processing')) return 'in-progress'
-      if (msg.includes('error') || msg.includes('failed')) return 'error'
-    }
-    
-    // Default to pending if no specific state
-    return 'pending'
+    if (dispute.status === 'rejected') return 'error'
+    return dispute.status || 'pending'
   }
 
   // Filter disputes based on selected status and search query
@@ -182,7 +171,9 @@ const AdminDisputes: React.FC = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       entries = entries.filter(([_, dispute]) => 
-        dispute.email.toLowerCase().includes(query)
+        dispute.userEmail.toLowerCase().includes(query) ||
+        dispute.creditorName.toLowerCase().includes(query) ||
+        dispute.accountNumber.toLowerCase().includes(query)
       )
     }
     
@@ -370,20 +361,46 @@ const AdminDisputes: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h4 className="text-base font-medium text-gray-900">
-                            {req.email}
+                            {req.creditorName}
                           </h4>
                           {getStatusBadge(status)}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          <span>Submitted: </span>
-                          <span className="font-medium">
-                            {req.createdAt 
-                              ? new Date(req.createdAt).toLocaleString()
-                              : 'Unknown date'}
-                          </span>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div>
+                            <span className="text-gray-500">User: </span>
+                            <span className="font-medium">{req.userEmail}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Account: </span>
+                            <span className="font-medium">{req.accountNumber}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Bureau(s): </span>
+                            <span className="font-medium">{req.bureau.join(', ')}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Submitted: </span>
+                            <span className="font-medium">
+                              {new Date(req.createdAt).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* Dispute Reason */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">Dispute Reason:</p>
+                      <p className="text-sm text-gray-900">{req.disputeReason}</p>
+                    </div>
+
+                    {/* User Notes */}
+                    {req.userNotes && (
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-sm font-medium text-blue-900 mb-1">User Notes:</p>
+                        <p className="text-sm text-blue-800">{req.userNotes}</p>
+                      </div>
+                    )}
 
                     {/* User Plan Info */}
                     {userPlan && (
@@ -408,19 +425,10 @@ const AdminDisputes: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Status Message */}
-                    {req.status?.message && (
-                      <div className={`text-sm ${
-                        req.status.error ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {req.status.message}
-                      </div>
-                    )}
-
-                    {/* Last Updated */}
-                    {req.status?.updatedAt && (
-                      <div className="text-xs text-gray-400">
-                        Last updated: {new Date(req.status.updatedAt).toLocaleString()}
+                    {/* Resolved Date */}
+                    {req.resolvedAt && (
+                      <div className="text-xs text-gray-500">
+                        Resolved: {new Date(req.resolvedAt).toLocaleString()}
                       </div>
                     )}
 
@@ -476,6 +484,59 @@ const AdminDisputes: React.FC = () => {
                           </button>
                         </div>
                       )}
+                    </div>
+
+                    {/* Status Change Section */}
+                    <div className="pt-3 border-t border-gray-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Update Status
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleStatusChange(id, 'pending')}
+                          disabled={req.status === 'pending'}
+                          className={`px-3 py-1.5 text-xs font-medium rounded ${
+                            req.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-800'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(id, 'in-progress')}
+                          disabled={req.status === 'in-progress'}
+                          className={`px-3 py-1.5 text-xs font-medium rounded ${
+                            req.status === 'in-progress'
+                              ? 'bg-blue-100 text-blue-800 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-800'
+                          }`}
+                        >
+                          In Progress
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(id, 'resolved')}
+                          disabled={req.status === 'resolved'}
+                          className={`px-3 py-1.5 text-xs font-medium rounded ${
+                            req.status === 'resolved'
+                              ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-800'
+                          }`}
+                        >
+                          Resolved
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(id, 'rejected')}
+                          disabled={req.status === 'rejected'}
+                          className={`px-3 py-1.5 text-xs font-medium rounded ${
+                            req.status === 'rejected'
+                              ? 'bg-red-100 text-red-800 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-800'
+                          }`}
+                        >
+                          Rejected
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

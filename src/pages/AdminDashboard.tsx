@@ -189,21 +189,19 @@ const AdminDashboard: React.FC = () => {
         user.currentPlan && user.currentPlan.status === 'active'
       ).length
       
-      // Fetch dispute requests to calculate pending disputes
+      // Fetch user disputes to calculate pending disputes
       let pendingDisputesCount = 0
       try {
         const { ref, get } = await import('firebase/database')
         const { database } = await import('../firebase')
-        const disputesRef = ref(database, 'disputeRequests')
+        const disputesRef = ref(database, 'userDisputes')
         const disputesSnapshot = await get(disputesRef)
         
         if (disputesSnapshot.exists()) {
           const disputes = disputesSnapshot.val()
           // Count disputes that are pending or in-progress
           pendingDisputesCount = Object.values(disputes).filter((dispute: any) => {
-            if (dispute.status?.state === 'resolved') return false
-            if (dispute.status?.error) return false // Errors are not "pending"
-            return true // Count pending and in-progress
+            return dispute.status === 'pending' || dispute.status === 'in-progress'
           }).length
         }
       } catch (error) {
