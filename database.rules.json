@@ -4,7 +4,7 @@
       ".read": "auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
       "$pushId": {
         ".read": "root.child('users').child(auth.uid).child('roles').child('admin').val() == true",
-        ".write": "!data.exists() && newData.hasChildren(['email','createdAt'])"
+        ".write": "!data.exists() && newData.hasChildren(['email','createdAt']) || (data.exists() && auth != null && root.child('users').child(auth.uid).child('roles').child('admin').val() == true)"
       }
     },
     "planChangeRequests": {
