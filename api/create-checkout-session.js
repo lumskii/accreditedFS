@@ -134,6 +134,7 @@ export default async function handler(req, res) {
     }
 
     let line_items = [];
+    let checkoutMode = mode === "full" ? "payment" : "payment"; // Always use payment mode for initial checkout
 
     if (mode === "full") {
       const priceId = PRICE_IDS[plan].full;
@@ -143,15 +144,14 @@ export default async function handler(req, res) {
       line_items.push({ price: priceId, quantity: 1 });
     } else if (mode === "monthly") {
       const depositPriceId = PRICE_IDS[plan].deposit;
-      const monthlyPriceId = PRICE_IDS[plan].monthly;
       
-      if (!depositPriceId || !monthlyPriceId) {
-        return res.status(500).json({ error: `Missing price IDs for ${plan} monthly payment` });
+      if (!depositPriceId) {
+        return res.status(500).json({ error: `Missing deposit price ID for ${plan}` });
       }
       
-      // ONLY add the monthly recurring price to line_items
-      // The deposit will be added via subscription_data.add_invoice_items
-      line_items.push({ price: monthlyPriceId, quantity: 1 });
+      // For monthly mode: ONLY charge the setup fee today in payment mode
+      // The subscription will be created by the webhook after successful payment
+      line_items.push({ price: depositPriceId, quantity: 1 });
     }
 
     // create or reuse stripe customer
@@ -170,36 +170,25 @@ export default async function handler(req, res) {
     // Build session configuration
     const sessionConfig = {
       payment_method_types: ["card"],
-      mode: mode === "full" ? "payment" : "subscription",
+      mode: checkoutMode,
       line_items,
       customer: stripeCustomerId,
       allow_promotion_codes: true,
       success_url: `https://accreditedfs.com/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://accreditedfs.com/cancel`,
+      metadata: {
+        plan: plan,
+        mode: mode,
+        uid: decoded.uid
+      }
     };
 
-    // For monthly mode, configure subscription with setup fee and delayed recurring billing
+    // For monthly mode, store the monthly price ID in metadata
+    // The webhook will use this to create the subscription after payment succeeds
     if (mode === "monthly") {
-      const depositPriceId = PRICE_IDS[plan].deposit;
-      
-      // Calculate billing cycle anchor: 30 days from now
-      const thirtyDaysFromNow = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-      
-      sessionConfig.subscription_data = {
-        billing_cycle_anchor: thirtyDaysFromNow,
-        // Add the deposit as a one-time invoice item (charged today)
-        add_invoice_items: [
-          {
-            price: depositPriceId,
-            quantity: 1
-          }
-        ],
-        metadata: {
-          plan: plan,
-          mode: mode,
-          setup_fee_charged: 'true'
-        }
-      };
+      const monthlyPriceId = PRICE_IDS[plan].monthly;
+      sessionConfig.metadata.monthly_price_id = monthlyPriceId;
+      sessionConfig.metadata.setup_fee_only = 'true';
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);

@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         amount_total: session.amount_total / 100,
         currency: session.currency,
         plan: session.metadata?.plan || 'unknown',
-        mode: session.mode,
+        mode: session.metadata?.mode || session.mode,
         status: 'paid',
         createdAt: Date.now(),
         sessionId,
@@ -92,20 +92,77 @@ export default async function handler(req, res) {
         if (uid) {
           await db.ref(`users/${uid}/payments/${sessionId}`).set(record);
           
-          // Update user's current plan based on the purchase
-          const planName = session.metadata?.plan || 'unknown';
-          const currentPlan = {
-            id: sessionId,
-            name: planName,
-            status: 'active',
-            mode: session.mode,
-            purchasedAt: new Date().toISOString(),
-            amount: session.amount_total / 100,
-            currency: session.currency
-          };
-          
-          await db.ref(`users/${uid}/currentPlan`).set(currentPlan);
-          console.log('✅ Current plan updated for user', uid, 'to', planName);
+          // For monthly mode with setup_fee_only, create a subscription starting in 30 days
+          if (session.metadata?.mode === 'monthly' && session.metadata?.setup_fee_only === 'true') {
+            const monthlyPriceId = session.metadata.monthly_price_id;
+            if (monthlyPriceId) {
+              try {
+                // Calculate billing cycle start: 30 days from now
+                const thirtyDaysFromNow = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+                
+                // Create subscription with first billing in 30 days
+                const subscription = await stripe.subscriptions.create({
+                  customer: customerId,
+                  items: [{ price: monthlyPriceId }],
+                  billing_cycle_anchor: thirtyDaysFromNow,
+                  proration_behavior: 'none',
+                  metadata: {
+                    plan: session.metadata.plan,
+                    mode: 'monthly',
+                    setup_session_id: sessionId
+                  }
+                });
+                
+                console.log('✅ Subscription created:', subscription.id, 'starting', new Date(thirtyDaysFromNow * 1000).toISOString());
+                
+                // Update user's current plan with subscription info
+                const planName = session.metadata?.plan || 'unknown';
+                const currentPlan = {
+                  id: subscription.id,
+                  subscriptionId: subscription.id,
+                  name: planName,
+                  status: 'active',
+                  mode: 'monthly',
+                  purchasedAt: new Date().toISOString(),
+                  setupFeeAmount: session.amount_total / 100,
+                  setupSessionId: sessionId,
+                  currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+                  currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+                  nextBillingDate: new Date(thirtyDaysFromNow * 1000).toISOString()
+                };
+                
+                await db.ref(`users/${uid}/currentPlan`).set(currentPlan);
+                console.log('✅ Current plan updated for user', uid, 'with subscription', subscription.id);
+              } catch (subErr) {
+                console.error('❌ Failed to create subscription:', subErr);
+                // Still set a basic plan record so user has access
+                await db.ref(`users/${uid}/currentPlan`).set({
+                  id: sessionId,
+                  name: session.metadata.plan,
+                  status: 'paid',
+                  mode: 'monthly',
+                  purchasedAt: new Date().toISOString(),
+                  setupFeeAmount: session.amount_total / 100,
+                  error: 'subscription_creation_failed'
+                });
+              }
+            }
+          } else {
+            // Full payment mode - just update the plan
+            const planName = session.metadata?.plan || 'unknown';
+            const currentPlan = {
+              id: sessionId,
+              name: planName,
+              status: 'paid',
+              mode: session.metadata?.mode || session.mode,
+              purchasedAt: new Date().toISOString(),
+              amount: session.amount_total / 100,
+              currency: session.currency
+            };
+            
+            await db.ref(`users/${uid}/currentPlan`).set(currentPlan);
+            console.log('✅ Current plan updated for user', uid, 'to', planName);
+          }
         } else {
           await db.ref(`payments_orphans/${sessionId}`).set(record);
         }
