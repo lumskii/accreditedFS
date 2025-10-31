@@ -5,12 +5,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode
   requireEmailVerification?: boolean
   requireAgreement?: boolean
+  requirePayment?: boolean
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireEmailVerification = true,
-  requireAgreement = true 
+  requireAgreement = true,
+  requirePayment = false
 }) => {
   const [authState, setAuthState] = useState<{
     isLoading: boolean
@@ -144,9 +146,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/agreement" replace />
   }
 
-  // Redirect to homepage if user doesn't have an active plan (payment required)
+  // Redirect to homepage if user doesn't have an active plan (only for routes that require payment)
   // This prevents users who cancel payment from accessing the dashboard
-  if (requireAgreement && !authState.hasActivePlan) {
+  if (requirePayment && !authState.hasActivePlan) {
+    console.log('ProtectedRoute - Payment required but user has no active plan, redirecting to homepage')
     return <Navigate to="/" replace />
   }
 

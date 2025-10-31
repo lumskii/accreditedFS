@@ -124,7 +124,7 @@ export function App() {
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute requireEmailVerification={true} requireAgreement={true}>
+              <ProtectedRoute requireEmailVerification={true} requireAgreement={true} requirePayment={true}>
                 <Dashboard />
               </ProtectedRoute>
             } 
