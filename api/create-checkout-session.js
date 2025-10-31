@@ -149,12 +149,9 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: `Missing price IDs for ${plan} monthly payment` });
       }
       
-      // Add monthly recurring price
+      // ONLY add the monthly recurring price to line_items
+      // The deposit will be added via subscription_data.add_invoice_items
       line_items.push({ price: monthlyPriceId, quantity: 1 });
-      
-      // Add deposit as one-time price
-      // NOTE: The deposit price in Stripe must be configured as ONE-TIME (not recurring)
-      line_items.push({ price: depositPriceId, quantity: 1 });
     }
 
     // create or reuse stripe customer
@@ -181,16 +178,26 @@ export default async function handler(req, res) {
       cancel_url: `https://accreditedfs.com/cancel`,
     };
 
-    // For monthly mode, delay the recurring charges to start in 30 days
+    // For monthly mode, configure subscription with setup fee and delayed recurring billing
     if (mode === "monthly") {
+      const depositPriceId = PRICE_IDS[plan].deposit;
+      
       // Calculate billing cycle anchor: 30 days from now
       const thirtyDaysFromNow = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
       
       sessionConfig.subscription_data = {
         billing_cycle_anchor: thirtyDaysFromNow,
+        // Add the deposit as a one-time invoice item (charged today)
+        add_invoice_items: [
+          {
+            price: depositPriceId,
+            quantity: 1
+          }
+        ],
         metadata: {
           plan: plan,
-          mode: mode
+          mode: mode,
+          setup_fee_charged: 'true'
         }
       };
     }
