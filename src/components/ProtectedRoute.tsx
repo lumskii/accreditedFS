@@ -17,6 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     isAuthenticated: boolean
     isEmailVerified: boolean
     hasAgreement: boolean
+    hasActivePlan: boolean
     isAdmin: boolean
     user: any
   }>({
@@ -24,6 +25,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     isAuthenticated: false,
     isEmailVerified: false,
     hasAgreement: false,
+    hasActivePlan: false,
     isAdmin: false,
     user: null
   })
@@ -48,13 +50,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             let hasAgreement = false
             // Check admin role
             let isAdmin = false
+            // Check if user has an active plan
+            let hasActivePlan = false
             try {
               const agreementSnap = await get(ref(database, `users/${user.uid}/agreement`))
               hasAgreement = agreementSnap.exists() && agreementSnap.val().agreed
               const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
               isAdmin = adminSnap.exists() && !!adminSnap.val()
+              
+              // Check for active plan with status 'active' or 'paid'
+              const planSnap = await get(ref(database, `users/${user.uid}/currentPlan`))
+              if (planSnap.exists()) {
+                const planData = planSnap.val()
+                hasActivePlan = planData && (planData.status === 'active' || planData.status === 'paid')
+              }
             } catch (error) {
-              console.warn('Failed to check agreement status:', error)
+              console.warn('Failed to check user status:', error)
             }
 
             setAuthState({
@@ -62,6 +73,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: true,
               isEmailVerified,
               hasAgreement,
+              hasActivePlan,
               isAdmin,
               user
             })
@@ -71,6 +83,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: false,
               isEmailVerified: false,
               hasAgreement: false,
+              hasActivePlan: false,
               isAdmin: false,
               user: null
             })
@@ -111,13 +124,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (location.pathname === '/agreement' || location.pathname === '/dashboard') {
       return <Navigate to="/admin/dashboard" replace />
     }
-    // Otherwise allow access without enforcing agreement
+    // Otherwise allow access without enforcing agreement or payment
     return <>{children}</>
   }
 
   // Redirect to agreement page if agreement not signed (when required)
   if (requireAgreement && !authState.hasAgreement) {
     return <Navigate to="/agreement" replace />
+  }
+
+  // Redirect to homepage if user doesn't have an active plan (payment required)
+  // This prevents users who cancel payment from accessing the dashboard
+  if (requireAgreement && !authState.hasActivePlan) {
+    return <Navigate to="/" replace />
   }
 
   // All checks passed, render the protected content
