@@ -134,7 +134,6 @@ export default async function handler(req, res) {
     }
 
     let line_items = [];
-    let sessionOptions = {};
 
     if (mode === "full") {
       const priceId = PRICE_IDS[plan].full;
@@ -150,8 +149,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: `Missing price IDs for ${plan} monthly payment` });
       }
       
-      // Only add the monthly recurring price to line_items
+      // Add monthly recurring price
       line_items.push({ price: monthlyPriceId, quantity: 1 });
+      
+      // Add deposit as one-time price
+      // NOTE: The deposit price in Stripe must be configured as ONE-TIME (not recurring)
+      line_items.push({ price: depositPriceId, quantity: 1 });
     }
 
     // create or reuse stripe customer
@@ -167,42 +170,32 @@ export default async function handler(req, res) {
       await userRef.set({ customerId: stripeCustomerId });
     }
 
-    // For monthly mode, add setup fee as one-time invoice item and delay recurring charges
-    if (mode === "monthly") {
-      const depositPriceId = PRICE_IDS[plan].deposit;
-      
-      // Create invoice item for setup fee (will be charged immediately, one-time only)
-      await stripe.invoiceItems.create({
-        customer: stripeCustomerId,
-        price: depositPriceId,
-        description: `${plan.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} - Setup Fee (One-time)`
-      });
-      
-      // Calculate billing cycle anchor: 30 days from now (when first monthly charge occurs)
-      const thirtyDaysFromNow = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-      
-      sessionOptions = {
-        subscription_data: {
-          billing_cycle_anchor: thirtyDaysFromNow,
-          metadata: {
-            plan: plan,
-            mode: mode,
-            setup_fee_charged: 'true'
-          }
-        }
-      };
-    }
-
-    const session = await stripe.checkout.sessions.create({
+    // Build session configuration
+    const sessionConfig = {
       payment_method_types: ["card"],
       mode: mode === "full" ? "payment" : "subscription",
       line_items,
       customer: stripeCustomerId,
-      allow_promotion_codes: true, // Enable promo code field in Stripe checkout
+      allow_promotion_codes: true,
       success_url: `https://accreditedfs.com/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://accreditedfs.com/cancel`,
-      ...sessionOptions
-    });
+    };
+
+    // For monthly mode, delay the recurring charges to start in 30 days
+    if (mode === "monthly") {
+      // Calculate billing cycle anchor: 30 days from now
+      const thirtyDaysFromNow = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+      
+      sessionConfig.subscription_data = {
+        billing_cycle_anchor: thirtyDaysFromNow,
+        metadata: {
+          plan: plan,
+          mode: mode
+        }
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     // store session info under user
     await db.ref(`users/${decoded.uid}/sessions/${session.id}`).set({
