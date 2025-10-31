@@ -5,18 +5,21 @@ interface ProtectedRouteProps {
   children: React.ReactNode
   requireEmailVerification?: boolean
   requireAgreement?: boolean
+  requirePayment?: boolean
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireEmailVerification = true,
-  requireAgreement = true 
+  requireAgreement = true,
+  requirePayment = false
 }) => {
   const [authState, setAuthState] = useState<{
     isLoading: boolean
     isAuthenticated: boolean
     isEmailVerified: boolean
     hasAgreement: boolean
+    hasActivePlan: boolean
     isAdmin: boolean
     user: any
   }>({
@@ -24,6 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     isAuthenticated: false,
     isEmailVerified: false,
     hasAgreement: false,
+    hasActivePlan: false,
     isAdmin: false,
     user: null
   })
@@ -48,13 +52,29 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             let hasAgreement = false
             // Check admin role
             let isAdmin = false
+            // Check if user has an active plan
+            let hasActivePlan = false
             try {
               const agreementSnap = await get(ref(database, `users/${user.uid}/agreement`))
               hasAgreement = agreementSnap.exists() && agreementSnap.val().agreed
               const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
               isAdmin = adminSnap.exists() && !!adminSnap.val()
+              
+              // Check for active plan - simple check for any currentPlan data
+              const planSnap = await get(ref(database, `users/${user.uid}/currentPlan`))
+              if (planSnap.exists()) {
+                const planData = planSnap.val()
+                console.log('ProtectedRoute - Found plan data:', JSON.stringify(planData, null, 2))
+                // User has active plan if the plan object exists and has content
+                hasActivePlan = planData && 
+                                typeof planData === 'object' && 
+                                Object.keys(planData).length > 0
+                console.log('ProtectedRoute - hasActivePlan result:', hasActivePlan)
+              } else {
+                console.log('ProtectedRoute - No currentPlan found for user:', user.uid)
+              }
             } catch (error) {
-              console.warn('Failed to check agreement status:', error)
+              console.warn('Failed to check user status:', error)
             }
 
             setAuthState({
@@ -62,6 +82,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: true,
               isEmailVerified,
               hasAgreement,
+              hasActivePlan,
               isAdmin,
               user
             })
@@ -71,6 +92,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               isAuthenticated: false,
               isEmailVerified: false,
               hasAgreement: false,
+              hasActivePlan: false,
               isAdmin: false,
               user: null
             })
@@ -119,6 +141,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requireAgreement && !authState.hasAgreement) {
     return <Navigate to="/agreement" replace />
   }
+
+  // Redirect to payment-mode page if user doesn't have an active plan (only for routes that require payment)
+  // This prevents users who cancel payment from accessing the dashboard
+  if (requirePayment && !authState.hasActivePlan) {
+    console.log('ProtectedRoute - Payment required but user has no active plan. requirePayment:', requirePayment, 'hasActivePlan:', authState.hasActivePlan)
+    return <Navigate to="/payment-mode" replace />
+  }
+
+  console.log('ProtectedRoute - All checks passed, rendering children for route requiring payment:', requirePayment)
 
   // All checks passed, render the protected content
   return <>{children}</>
