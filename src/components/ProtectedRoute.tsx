@@ -65,14 +65,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               if (planSnap.exists()) {
                 const planData = planSnap.val()
                 console.log('ProtectedRoute - Current plan data:', planData)
-                // User has active plan if:
-                // 1. Plan exists and has status 'active' or 'paid', OR
-                // 2. Plan exists (for backward compatibility with plans created before status field)
-                hasActivePlan = planData && (
-                  planData.status === 'active' || 
-                  planData.status === 'paid' ||
-                  !planData.status // Backward compatibility - if no status field, assume active
-                )
+                // User has active plan if the plan exists in database
+                // This means they completed payment (webhook sets this field)
+                hasActivePlan = !!planData
                 console.log('ProtectedRoute - hasActivePlan:', hasActivePlan)
               } else {
                 console.log('ProtectedRoute - No currentPlan found for user')
