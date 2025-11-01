@@ -60,15 +60,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               const adminSnap = await get(ref(database, `users/${user.uid}/roles/admin`))
               isAdmin = adminSnap.exists() && !!adminSnap.val()
               
-              // Check for active plan - simple check for any currentPlan data
+              // Check for active plan - check for valid plan with active/paid status
               const planSnap = await get(ref(database, `users/${user.uid}/currentPlan`))
               if (planSnap.exists()) {
                 const planData = planSnap.val()
                 console.log('ProtectedRoute - Found plan data:', JSON.stringify(planData, null, 2))
-                // User has active plan if the plan object exists and has content
+                
+                // User has active plan if:
+                // 1. Plan object exists and has content
+                // 2. Has a valid status (active, paid, or any truthy status)
+                // 3. Has an id field (subscription or session id)
                 hasActivePlan = planData && 
                                 typeof planData === 'object' && 
-                                Object.keys(planData).length > 0
+                                Object.keys(planData).length > 0 &&
+                                (planData.status === 'active' || 
+                                 planData.status === 'paid' || 
+                                 planData.id) // If it has an ID, it's a valid plan
+                
                 console.log('ProtectedRoute - hasActivePlan result:', hasActivePlan)
               } else {
                 console.log('ProtectedRoute - No currentPlan found for user:', user.uid)
