@@ -16,6 +16,7 @@ import {
   MessageSquare
 } from 'lucide-react'
 import PlanChangeModal from '../components/PlanChangeModal'
+import ChunkErrorBoundary from '../components/ChunkErrorBoundary'
 
 const UserDisputes = lazy(() => import('../components/UserDisputes'))
 
@@ -1246,13 +1247,15 @@ const Dashboard: React.FC = () => {
 
         {/* Disputes Tab */}
         {activeTab === 'disputes' && (
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-          }>
-            <UserDisputes />
-          </Suspense>
+          <ChunkErrorBoundary>
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            }>
+              <UserDisputes />
+            </Suspense>
+          </ChunkErrorBoundary>
         )}
 
         {/* Agreements Tab */}
