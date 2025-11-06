@@ -121,6 +121,7 @@ export default async function handler(req, res) {
                   id: subscription.id,
                   subscriptionId: subscription.id,
                   name: planName,
+                  plan: planName, // Add this field for Dashboard compatibility
                   status: 'active',
                   mode: 'monthly',
                   purchasedAt: new Date().toISOString(),
@@ -139,6 +140,7 @@ export default async function handler(req, res) {
                 await db.ref(`users/${uid}/currentPlan`).set({
                   id: sessionId,
                   name: session.metadata.plan,
+                  plan: session.metadata.plan, // Add this field for Dashboard compatibility
                   status: 'paid',
                   mode: 'monthly',
                   purchasedAt: new Date().toISOString(),
@@ -153,6 +155,7 @@ export default async function handler(req, res) {
             const currentPlan = {
               id: sessionId,
               name: planName,
+              plan: planName, // Add this field for Dashboard compatibility
               status: 'paid',
               mode: session.metadata?.mode || session.mode,
               purchasedAt: new Date().toISOString(),
