@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Mail, CheckCircle } from 'lucide-react'
 import { push, ref, set } from 'firebase/database'
 import { database } from '../firebase'
-// jsPDF and emailjs are large. Import them dynamically inside the submit handler
 
 // Configure these with your EmailJS values (replace in production)
 const EMAILJS_SERVICE_ID = (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID'
@@ -35,27 +34,21 @@ const EmailSubscription: React.FC = () => {
         createdAt: new Date().toISOString(),
       })
 
-      // Generate PDF client-side and send via EmailJS (dynamically import heavy libs)
+      // Send HTML email with dispute letter template via EmailJS
       try {
-        const [{ jsPDF }, emailjs] = await Promise.all([
-          import('jspdf'),
-          import('@emailjs/browser')
-        ])
-        const { base64, filename } = generatePdfBase64WithJsPdf(jsPDF, trimmed)
-        // EmailJS accepts attachments as base64 data URI in template params for many setups
-        // Use the browser SDK to send the template with an attachment param
+        const emailjs = await import('@emailjs/browser')
         await (emailjs as any).send(
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ID,
           {
             to_email: trimmed,
-            attachment: `data:application/pdf;base64,${base64}`,
-            filename,
+            user_email: trimmed,
           },
           EMAILJS_PUBLIC_KEY
         )
       } catch (sendErr) {
-        console.warn('EmailJS send failed; user can download the PDF instead', sendErr)
+        console.error('EmailJS send failed:', sendErr)
+        throw sendErr
       }
 
       setIsSubmitted(true)
@@ -113,31 +106,4 @@ const EmailSubscription: React.FC = () => {
   )
 }
 
-// Helper: same as above but accepts jsPDF module to avoid static import
-function generatePdfBase64WithJsPdf(jsPDFModule: any, emailAddress: string) {
-  const doc = new jsPDFModule.jsPDF ? new jsPDFModule.jsPDF({ unit: 'pt', format: 'a4' }) : new jsPDFModule({ unit: 'pt', format: 'a4' })
-  // some jsPDF builds export as named `jsPDF` while older export provides the constructor directly
-  doc.setFontSize(18)
-  doc.text('Credit Dispute Letter', 72, 72)
-  doc.setFontSize(11)
-  const body = [
-    'To Whom It May Concern,',
-    '',
-    `This is a drafted dispute letter for ${emailAddress}.`,
-    '',
-    'Please edit the name/address fields and send to the bureaus.',
-    '',
-    'Sincerely,',
-    'Accredited Financial Services',
-  ]
-  let y = 120
-  body.forEach((line: string) => {
-    doc.text(line, 72, y)
-    y += 18
-  })
-
-  const dataUri = doc.output('datauristring')
-  const base64 = dataUri.split(',')[1]
-  return { base64, filename: 'dispute-letter.pdf' }
-}
 export default EmailSubscription
