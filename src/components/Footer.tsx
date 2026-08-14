@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-start"><Phone className="h-5 w-5 mr-3 mt-0.5" /> <span>(928) 320-7474</span></li>
               <li className="flex items-start"><Mail className="h-5 w-5 mr-3 mt-0.5" /> <span>info@accreditedfs.com</span></li>
-              <li className="flex items-start"><MapPinIcon className="h-5 w-5 mr-3 mt-0.5" /> <span>101 N Colonado St, #131 <br /> Chandler, AZ 85244</span></li>
+              <li className="flex items-start"><MapPinIcon className="h-5 w-5 mr-3 mt-0.5" /> <span>101 N Colorado St, #131 <br /> Chandler, AZ 85244</span></li>
               <li className="text-sm">
                 <strong>Service Area:</strong><br />
                 {/* Nation wide<br /> */}

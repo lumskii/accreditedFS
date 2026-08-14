@@ -7,7 +7,7 @@ type Tier = {
   id: number;
   name: string;
   price: string;
-  originalPrice?: string;
+  promotionalPrice: string;
   description: string;
   features: string[];
   expandedFeatures: string[];
@@ -81,7 +81,7 @@ const PricingSection: React.FC = () => {
       id: 1,
       name: "Credit Refresh",
       price: "800",
-      originalPrice: "1,300",
+      promotionalPrice: "400",
       description:
         "Perfect for clients who need a quick win and focused cleanup to move closer to approvals. This entry-level package targets the most harmful inaccuracies on your report — without the extras — giving you the foundation to move forward toward your financial goals.",
       features: [
@@ -103,7 +103,7 @@ const PricingSection: React.FC = () => {
       id: 2,
       name: "Credit Rebuild",
       price: "1,200",
-      originalPrice: "1,700",
+      promotionalPrice: "600",
       description:
         "This is the full reset — designed for clients ready to completely restore their credit and aim for the 700+ club. You’ll receive personalized support, monthly progress reviews, and hands-on guidance to keep your credit moving forward.",
       features: [
@@ -127,7 +127,7 @@ const PricingSection: React.FC = () => {
       id: 3,
       name: "Couples Advantage",
       price: "2,000",
-      originalPrice: "2,500",
+      promotionalPrice: "1,000",
       description:
         "Designed for couples or partners who are serious about building — or rebuilding — their credit together. This plan includes the full benefits of our premium credit repair program, doubled for both partners, along with personalized guidance to ensure each of you is supported on your financial journey.",
       features: [
@@ -310,17 +310,17 @@ const PriceCard: React.FC<{
     { full: string; monthlyDeposit: string; monthlySummary: string }
   > = {
     "credit-refresh": {
-      full: "$800",
+      full: "$400",
       monthlyDeposit: "$200",
       monthlySummary: "$123/mo",
     },
     "credit-rebuild": {
-      full: "$1,200",
+      full: "$600",
       monthlyDeposit: "$300",
       monthlySummary: "$156/mo",
     },
     "couples-advantage": {
-      full: "$2,000",
+      full: "$1,000",
       monthlyDeposit: "$450",
       monthlySummary: "$228/mo",
     },
@@ -391,13 +391,23 @@ const PriceCard: React.FC<{
         <div className="w-full mb-4">
           <div className="w-full bg-[#f0d541] text-blue-800 rounded-md px-4 py-3 relative overflow-visible">
             <h3 className="text-2xl font-bold mb-1 text-center">{tier.name}</h3>
-            <div className="flex items-baseline justify-center">
-              <span className="text-4xl font-bold">${tier.price}</span>
+            <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
+              <span
+                className="text-lg font-semibold text-blue-900/65 line-through decoration-2"
+                aria-label={`Regular price $${tier.price}`}
+              >
+                ${tier.price}
+              </span>
+              <span
+                className="text-4xl sm:text-5xl font-extrabold tracking-tight"
+                aria-label={`Promotional price $${tier.promotionalPrice}`}
+              >
+                ${tier.promotionalPrice}
+              </span>
             </div>
-            {/* Tag shaped like price tag image: rotated square (hole/clip) + rounded label centered at bottom */}
             <div className="flex justify-center mt-2">
               <div className="inline-flex items-center bg-blue-700 text-[#f0d541] px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
-                Pay in full — discounted price
+                Limited-time offer · 50% off · Pay in full
               </div>
             </div>
           </div>
